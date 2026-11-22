@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tc web — Detalhe da sessão (mockup)</title>
+<!--
+  MOCKUP DE REFERÊNCIA — dados fictícios.
+  Só HTML + CSS, sem JavaScript e sem recursos externos.
+  Serve de guia visual para o tc web (design.md §8.1): reproduzir o visual com os dados reais,
+  gerado pelo Python no servidor. No tc web de verdade, acrescentar
+  <meta http-equiv="refresh" content="5"> e trocar os "#topo" por URLs com parâmetros.
+-->
+<style>body{margin:0;background:#0E1014}
+a{color:#9CC3FF}a:hover{color:#C9DDFF}</style>
+</head>
+<body>
+<div style="min-height: 100vh; background: #0E1014; color: #E7EAEE; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.45">
+<div style="max-width: 1360px; margin: 0 auto; padding: 28px 32px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<a href="hoje.html" style="font-size: 13px; text-decoration: none">← Voltar para Hoje</a>
+<h1 style="margin: 0; font-size: 24px; font-weight: 650; letter-spacing: -0.01em">analisador-curriculos <span style="color: #A0A9B8; font-weight: 400; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 18px">· sessão 7f3c9a</span></h1>
+<span style="font-size: 13px; color: #A0A9B8">Claude Code · Claude Opus 5.5 · 22/11/2026, 09:01 – 09:48 · nível de detalhe: completo</span>
+</div>
+<span style="padding: 5px 12px; border-radius: 999px; background: #3A2A17; color: #FFC58A; font-size: 13px">4 sinais de diagnóstico</span>
+</header>
+
+<section aria-label="Indicadores da sessão" style="display: flex; flex-wrap: wrap; gap: 16px">
+<div style="flex: 1 1 180px; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em">Custo</span>
+<span style="font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; color: #F5A04A">US$ 1,56</span>
+<span style="font-size: 12px; color: #A0A9B8">p90 do projeto: US$ 1,10</span>
+</div>
+<div style="flex: 1 1 180px; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em">Chamadas</span>
+<span style="font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums">96</span>
+<span style="font-size: 12px; color: #A0A9B8">5 prompts · 19 por prompt</span>
+</div>
+<div style="flex: 1 1 180px; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em">Taxa de cache</span>
+<span style="font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; color: #FFC58A">71%</span>
+<span style="font-size: 12px; color: #A0A9B8">abaixo da meta de 80%</span>
+</div>
+<div style="flex: 1 1 180px; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em">Tempo ativo</span>
+<span style="font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums">30 min</span>
+<span style="font-size: 12px; color: #A0A9B8">de 47 min · 3 pausas</span>
+</div>
+<div style="flex: 1 1 180px; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em">Tool calls</span>
+<span style="font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums">96</span>
+<span style="font-size: 12px; color: #FF9C8F">11 com erro (11,5%)</span>
+</div>
+</section>
+
+<section aria-labelledby="t-linha" style="background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
+<h2 id="t-linha" style="margin: 0; font-size: 15px; font-weight: 600">Linha do tempo · chamadas por minuto</h2>
+<a href="sequencia.html" style="font-size: 13px; text-decoration: none; font-weight: 600">Ver a sequência passo a passo →</a>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-size: 12px; color: #A0A9B8">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #6AA6FF"></span>chamadas</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #232934; border: 1px dashed #4A5466"></span>pausa (cache expirou)</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 50%; background: #F5A04A"></span>re-criação de cache</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 50%; background: #FF9C8F"></span>loop de retry</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 2px; height: 12px; background: #E7EAEE"></span>prompt</span>
+</div>
+</div>
+<div role="img" aria-label="Chamadas por minuto entre 09:01 e 09:48, com três pausas de 5 a 6 minutos às 09:10, 09:21 e 09:32, re-criação de cache após cada pausa e um loop de retry às 09:31" style="display: flex; align-items: stretch; gap: 3px; height: 180px">
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 56px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 112px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 140px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 84px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 112px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 84px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 56px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 84px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 28px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: #F5A04A"></span>
+<div style="width: 100%; height: 140px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 112px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 84px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 56px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 84px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 28px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: #F5A04A"></span>
+<div style="width: 100%; height: 112px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 140px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 84px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 112px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: #FF9C8F"></span>
+<div style="width: 100%; height: 56px; background: #FF9C8F; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: #232934">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 0px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: #F5A04A"></span>
+<div style="width: 100%; height: 140px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 112px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 84px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 112px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 84px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 112px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 84px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 56px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 56px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; border-radius: 4px; background: transparent">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: transparent"></span>
+<div style="width: 100%; height: 84px; background: #6AA6FF; border-radius: 3px 3px 0 0"></div>
+</div>
+
+</div>
+<div style="display: flex; gap: 3px; margin-top: -8px">
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: #E7EAEE"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px">09:10</span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: #E7EAEE"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px">09:20</span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: #E7EAEE"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px">09:30</span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: #E7EAEE"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px">09:40</span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: #E7EAEE"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 4px">
+<span style="width: 2px; height: 10px; background: transparent"></span>
+<span style="font-size: 11px; color: #A0A9B8; white-space: nowrap; height: 14px"></span>
+</div>
+
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<section aria-labelledby="t-diag" style="flex: 2 1 560px; min-width: 0; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<h2 id="t-diag" style="margin: 0; font-size: 15px; font-weight: 600">Diagnóstico e recomendações</h2>
+<span style="font-size: 12px; color: #A0A9B8">ordenado por impacto · Fase 3 (prévia)</span>
+</div>
+
+<div style="display: flex; gap: 14px; padding: 14px 16px; border: 1px solid #2C3340; border-radius: 12px; background: #12151B">
+<div style="flex: 0 0 auto; width: 92px; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; color: #F5A04A">+US$ 0,61</span>
+<span style="font-size: 11px; color: #A0A9B8">estimado</span>
+</div>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600">Re-criação de cache após pausas</span>
+<span style="font-size: 13px; color: #A0A9B8">3 pausas de 5–6 min (09:10, 09:21, 09:32) passaram do TTL de 5 min. Cada retomada regravou ~50 k tokens de contexto.</span>
+<span style="font-size: 13px">→ Em pausas longas, abra uma sessão nova com um resumo, ou use o cache de 1 h.</span>
+</div>
+</div>
+
+<div style="display: flex; gap: 14px; padding: 14px 16px; border: 1px solid #2C3340; border-radius: 12px; background: #12151B">
+<div style="flex: 0 0 auto; width: 92px; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; color: #FFC58A">71%</span>
+<span style="font-size: 11px; color: #A0A9B8">meta ≥ 80%</span>
+</div>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600">Cache baixo</span>
+<span style="font-size: 13px; color: #A0A9B8">Consequência direta das pausas: 198 k tokens gravados para 520 k lidos.</span>
+<span style="font-size: 13px">→ Resolvendo as pausas, a taxa deve voltar para a faixa de 90% das outras sessões.</span>
+</div>
+</div>
+
+<div style="display: flex; gap: 14px; padding: 14px 16px; border: 1px solid #2C3340; border-radius: 12px; background: #12151B">
+<div style="flex: 0 0 auto; width: 92px; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; color: #FF9C8F">4×</span>
+<span style="font-size: 11px; color: #A0A9B8">seguidas</span>
+</div>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600">Loop de retry no Bash · módulo não encontrado</span>
+<span style="font-size: 13px; color: #A0A9B8">O Bash falhou 4 vezes seguidas às 09:31, sempre com a mesma categoria de erro. É o 3º loop desta categoria no projeto em 7 dias.</span>
+<span style="font-size: 13px">→ Registre no CLAUDE.md como ativar o ambiente (ex.: poetry run …) e peça para o agente parar após 2 falhas iguais.</span>
+</div>
+</div>
+
+<div style="display: flex; gap: 14px; padding: 14px 16px; border: 1px solid #2C3340; border-radius: 12px; background: #12151B">
+<div style="flex: 0 0 auto; width: 92px; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; color: #FF9C8F">2×</span>
+<span style="font-size: 11px; color: #A0A9B8">erros de MCP</span>
+</div>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="font-weight: 600">MCP google-drive · autenticação expirada</span>
+<span style="font-size: 13px; color: #A0A9B8">As 2 chamadas ao servidor MCP falharam por autenticação às 09:27.</span>
+<span style="font-size: 13px">→ Reautentique o servidor MCP antes de começar a sessão.</span>
+</div>
+</div>
+
+</section>
+
+<div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<section aria-labelledby="t-tok" style="background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="t-tok" style="margin: 0; font-size: 15px; font-weight: 600">Tokens da sessão</h2>
+<div role="img" aria-label="Divisão: 68% leitura de cache, 26% gravação de cache, 5% output, 1% input" style="display: flex; height: 10px; border-radius: 4px; overflow: hidden">
+<div style="width: 1.2%; background: #D3DAE4"></div>
+<div style="width: 5.4%; background: #F5A04A"></div>
+<div style="width: 25.9%; background: #6AA6FF"></div>
+<div style="width: 67.5%; background: #3567B8"></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; font-size: 13px; font-variant-numeric: tabular-nums">
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #3567B8"></span>Leitura de cache 520 k</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #6AA6FF"></span>Gravação 198 k</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #F5A04A"></span>Output 41 k</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #D3DAE4"></span>Input 9 k</span>
+</div>
+</section>
+<section aria-labelledby="t-tools" style="background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<h2 id="t-tools" style="margin: 0; font-size: 15px; font-weight: 600">Tools da sessão</h2>
+<table style="width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums">
+<thead><tr style="color: #A0A9B8; font-size: 12px; text-align: left"><th scope="col" style="padding: 6px 0; font-weight: 500">Tool</th><th scope="col" style="padding: 6px 0; font-weight: 500; text-align: right">Usos</th><th scope="col" style="padding: 6px 0; font-weight: 500; text-align: right">Erros</th></tr></thead>
+<tbody>
+
+<tr><td style="padding: 7px 0; border-top: 1px solid #20252E; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace">Bash</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right">34</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right; color: #FF9C8F">7</td></tr>
+
+<tr><td style="padding: 7px 0; border-top: 1px solid #20252E; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace">Read</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right">28</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right; color: #7F8898">—</td></tr>
+
+<tr><td style="padding: 7px 0; border-top: 1px solid #20252E; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace">Edit</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right">19</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right; color: #FF9C8F">1</td></tr>
+
+<tr><td style="padding: 7px 0; border-top: 1px solid #20252E; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace">Grep</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right">8</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right; color: #7F8898">—</td></tr>
+
+<tr><td style="padding: 7px 0; border-top: 1px solid #20252E; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace">WebSearch</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right">3</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right; color: #FF9C8F">1</td></tr>
+
+<tr><td style="padding: 7px 0; border-top: 1px solid #20252E; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace">mcp: google-drive</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right">3</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right; color: #FF9C8F">2</td></tr>
+
+<tr><td style="padding: 7px 0; border-top: 1px solid #20252E; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace">Task (subagente)</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right">1</td><td style="padding: 7px 0; border-top: 1px solid #20252E; text-align: right; color: #7F8898">—</td></tr>
+
+</tbody>
+</table>
+</section>
+</div>
+</div>
+
+<footer style="font-size: 12px; color: #A0A9B8">Só números e metadados: nenhum texto de prompt, resposta ou argumento de tool é guardado. Arquivos são identificados por hash.</footer>
+
+</div>
+</div>
+</body>
+</html>
