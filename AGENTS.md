@@ -66,6 +66,7 @@ Ele roda num notebook corporativo, com dados sensíveis. Por isso as regras abai
 ```
 token_controler/
   cli.py              # comandos `tc` (argparse); textos em português
+  consultas.py        # consultas ao banco usadas pelo CLI, `--json`, `tc painel`, `tc live` e `tc web` (dicts prontos)
   painel.py           # `tc painel`, tela do `tc live` e árvore do `tc sessao` (única parte que usa `rich`)
   agora.py            # dados e texto simples da tela do `tc live` (só biblioteca padrão)
   detalhe.py          # dados e árvore neutra do `tc sessao` (só biblioteca padrão; reusa as regras de diagnostico.py)
@@ -81,6 +82,8 @@ token_controler/
   `ingerir(con, pasta=None, tudo=False, apelidos=None) -> dict` e grava no **schema único**
   (`chamadas`, `tool_calls`, `eventos`, `arquivos`), preenchendo a coluna `ferramenta`.
 - Os relatórios no `cli.py` não sabem de qual ferramenta veio o dado.
+- **Consulta nova vai para `consultas.py`**, não para o comando: as telas (CLI, `rich`, `tc web`) só formatam o que ela
+  devolve. Assim o `--json`, o painel e o navegador mostram os mesmos números.
 - Ingestão incremental: um arquivo só é reprocessado se `tamanho` ou `mtime` mudarem; ao reprocessar,
   apaga as linhas daquele arquivo e grava de novo.
 - Uma fonte só entra se tiver timestamp, ID de sessão, modelo e contagem de tokens (ou custo registrado).

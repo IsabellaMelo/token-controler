@@ -334,8 +334,8 @@ com dados da sessão.
 | Fase | Entrega | Estado |
 |---|---|---|
 | **1** | SQLite + adaptador Claude Code + CLI (`ingest`, `resumo`, `sessoes`, `tools`, `live`) + testes e CI | ✅ entregue, testada com logs sintéticos |
-| **1.5** | Validação com dados reais + `--json`; **além disso**, confirmar nos logs reais `tool_use_id`, `parentUuid`, a ligação com o subagente e o texto de erro dos `tool_result` (T21) | T01 e T02 ✅; T21 pendente |
-| **2** | Adaptador Copilot VS Code (`chatSessions` e `agent-traces.db`) + `origem_custo` + `nivel_detalhe` + `tc qualidade`; **além disso**, o `ingest` grava os campos da seção 5 (T22) e as categorias de erro da 6.4 (T23) | Copilot depende da estrutura real dos arquivos; T22 e T23 pendentes |
+| **1.5** | Validação com dados reais + `--json`; **além disso**, confirmar nos logs reais `tool_use_id`, `parentUuid`, a ligação com o subagente e o texto de erro dos `tool_result` (T21) | T01, T02 e T21 ✅ |
+| **2** | Adaptador Copilot VS Code (`chatSessions` e `agent-traces.db`) + `origem_custo` + `nivel_detalhe` + `tc qualidade`; **além disso**, o `ingest` grava os campos da seção 5 (T22) e as categorias de erro da 6.4 (T23) | Copilot depende da estrutura real dos arquivos; T22 e T23 ✅ |
 | **2.5** | `tc web` (8.1), em quatro passos: Hoje → abas e filtros → detalhe da sessão → sequência (T24 a T28) | Pendente |
 | **3** | Categorias de tarefa, one-shot e `tc diagnostico` com recomendações; **além disso**, os sinais de loop por categoria e de erro recorrente (T29) | T13 a T16, T19 e T20 ✅; T29 pendente |
 | **4** | Calibrar os limites com 2 a 3 semanas de uso real | — |
@@ -352,7 +352,10 @@ com dados da sessão.
 1. Qual é a estrutura real dos `chatSessions` do Copilot no notebook do trabalho, e o `agent-traces.db` existe?
 2. A TI permite rodar scripts Python que leem `%APPDATA%\Code`?
 3. Qual tabela de preços usar para os modelos do Copilot que não são da Anthropic (GPT, Gemini)?
-4. Os números da Fase 1 batem com o `/cost` do Claude Code em uma sessão real?
+4. ~~Os números da Fase 1 batem com o `/cost` do Claude Code em uma sessão real?~~ **Validado** (22/11/2026) contra o
+   ccusage 20.0.51 (`ccusage claude daily --offline --breakdown`), por dia × modelo: input, output, gravação de cache (5 min
+   e 1 h), leitura de cache e custo batem em 0,000% nos dias fechados (15, 20 e 21/11) e, numa cópia congelada dos logs,
+   também no dia em andamento. O `ccusage daily` sem `claude` soma outros agentes (ex.: Copilot CLI), fora do escopo do tc.
 5. `tool_calls.alvo_ext` (extensão do arquivo junto do hash): **pendente de decisão**. Não implementar até decidir.
 6. ~~Numeração do `turno` e `seq` compartilhada~~ **Resolvido na T22** (ver 5): turno a partir de 1, turno 0 antes do primeiro prompt; `seq` compartilhada.
 7. Comando de shell na tela de sequência: hoje só aparece a classe (`teste`, `build`, `git`...). Mostrar o texto, lido do log na hora como no `tc sessao --comandos`, é decisão à parte.

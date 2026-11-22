@@ -9,19 +9,9 @@ import time
 from datetime import date, datetime
 from pathlib import Path
 
-from . import agora, comportamento, custo, db, detalhe, diagnostico, qualidade
+from . import agora, comportamento, consultas, custo, db, detalhe, diagnostico, qualidade
 from .formato import fmt_dur, fmt_pct, fmt_tokens, fmt_usd
 from .fontes import claude_code
-
-PAUSA_MAX_S = 300  # pausas acima de 5 min não contam como tempo ativo
-
-AGRUPAMENTOS = {
-    "projeto": "COALESCE(projeto, '?')",
-    "dia": "date(ts, 'localtime')",
-    "sessao": "sessao_id",
-    "ferramenta": "ferramenta",
-    "modelo": "COALESCE(modelo, '?')",
-}
 
 
 # ---------- formatação ----------
@@ -41,22 +31,15 @@ def tabela(cabecalho: list[str], linhas: list[list[str]], alinhar_esq: int = 1) 
 
 # ---------- filtros ----------
 
-def filtros(args) -> tuple[str, list]:
-    cond, params = [], []
+def filtro(args) -> consultas.Filtro:
+    """O `Filtro` das consultas a partir das opções --desde/--ate/--hoje/--projeto/--ferramenta."""
     desde = "hoje" if getattr(args, "hoje", False) else getattr(args, "desde", None)
-    if desde:
-        cond.append("date(ts, 'localtime') >= ?")
-        params.append(date.today().isoformat() if desde == "hoje" else desde)
-    if getattr(args, "ate", None):
-        cond.append("date(ts, 'localtime') <= ?")
-        params.append(args.ate)
-    if getattr(args, "projeto", None):
-        cond.append("projeto = ?")
-        params.append(args.projeto)
-    if getattr(args, "ferramenta", None):
-        cond.append("ferramenta = ?")
-        params.append(args.ferramenta)
-    return (" AND ".join(cond) or "1=1"), params
+    return consultas.Filtro(
+        desde=date.today().isoformat() if desde == "hoje" else desde,
+        ate=getattr(args, "ate", None),
+        projeto=getattr(args, "projeto", None),
+        ferramenta=getattr(args, "ferramenta", None),
+    )
 
 
 def carregar_apelidos() -> dict[str, str]:
@@ -91,10 +74,7 @@ def cmd_ingest(con, args) -> None:
 def rodape_custo(con, args) -> list[str]:
     """Linhas de rodapé do resumo: o modo de custo e de onde veio cada custo."""
     modo = db.ler_modo(con)
-    where, p = filtros(args)
-    origens = dict(con.execute(
-        f"SELECT origem_custo, COUNT(*) FROM chamadas WHERE origem_custo IS NOT NULL AND {where} "
-        "GROUP BY origem_custo", p).fetchall())
+    origens = consultas.origens_do_custo(con, filtro(args))
     texto = ", ".join(f"{origens.get(o, 0)} {rot}" for o, rot in
                       (("registrado", "registrada(s)"), ("calculado", "calculada(s)"),
                        ("sem_preco", "sem preço")))
@@ -113,53 +93,8 @@ def emitir_json(dados) -> None:
 
 
 def linhas_resumo(con, args) -> list[dict]:
-    """Resumo agrupado com números crus. None = não se aplica ou sem dado (a tabela mostra '-')."""
-    g = AGRUPAMENTOS[args.por]
-    where, p = filtros(args)
-    linhas: dict[str, dict] = {}
-
-    for r in con.execute(f"""
-        SELECT {g} AS grupo, COUNT(DISTINCT sessao_id) AS sessoes, COUNT(*) AS chamadas,
-               SUM(erro_api) AS erros_api, SUM(input_tokens) AS inp, SUM(output_tokens) AS outp,
-               SUM(cache_write_5m + cache_write_1h) AS cw, SUM(cache_read) AS cr,
-               SUM(custo_usd) AS custo, SUM(custo_usd IS NULL AND erro_api = 0) AS sem_preco
-        FROM chamadas WHERE {where} GROUP BY grupo""", p):
-        linhas[r["grupo"]] = dict(r)
-
-    if args.por != "modelo":
-        for r in con.execute(f"""
-            SELECT {g} AS grupo, COUNT(*) AS n FROM eventos
-            WHERE tipo = 'prompt' AND {where} GROUP BY grupo""", p):
-            linhas.setdefault(r["grupo"], {"grupo": r["grupo"]})["prompts"] = r["n"]
-        for r in con.execute(f"""
-            SELECT {g} AS grupo, COUNT(*) AS n, SUM(CASE WHEN {db.ERRO_REAL} THEN 1 ELSE 0 END) AS erros FROM tool_calls
-            WHERE {where} GROUP BY grupo""", p):
-            d = linhas.setdefault(r["grupo"], {"grupo": r["grupo"]})
-            d["tools"], d["erros_tool"] = r["n"], r["erros"]
-
-    saida = []
-    por_modelo = args.por == "modelo"
-    for grupo in sorted(linhas, key=lambda k: -(linhas[k].get("custo") or 0)):
-        d = linhas[grupo]
-        entrada, cw, cr = d.get("inp") or 0, d.get("cw") or 0, d.get("cr") or 0
-        total_in = entrada + cw + cr
-        saida.append({
-            args.por: str(grupo),
-            "sessoes": d.get("sessoes") or 0,
-            "prompts": None if por_modelo else d.get("prompts"),
-            "chamadas": d.get("chamadas") or 0,
-            "tools": None if por_modelo else d.get("tools"),
-            "erros_tool": None if por_modelo else d.get("erros_tool"),
-            "erros_api": d.get("erros_api") or 0,
-            "input": entrada,
-            "output": d.get("outp") or 0,
-            "cache_write": cw,
-            "cache_read": cr,
-            "cache_taxa": cr / total_in if total_in else None,  # fração de 0 a 1
-            "custo_usd": d.get("custo"),                        # None = nenhuma chamada com preço
-            "chamadas_sem_preco": d.get("sem_preco") or 0,      # a tabela marca com '*'
-        })
-    return saida
+    """Resumo agrupado com números crus (consultas.resumo). None = não se aplica ou sem dado."""
+    return consultas.resumo(con, filtro(args), args.por)
 
 
 def _celula(v):
@@ -194,58 +129,14 @@ def cmd_resumo(con, args) -> None:
     cab = [c.format(args.por) for c in CAB_RESUMO]
     print(tabela(cab, linhas))
     if linhas:
-        total = con.execute(f"SELECT SUM(custo_usd) FROM chamadas WHERE {filtros(args)[0]}",
-                            filtros(args)[1]).fetchone()[0]
-        print(f"\nCusto total estimado: {fmt_usd(total)}")
+        print(f"\nCusto total estimado: {fmt_usd(consultas.custo_total(con, filtro(args)))}")
         for linha in rodape_custo(con, args):
             print(linha)
 
 
 def linhas_sessoes(con, args) -> list[dict]:
-    """Sessões com números crus. Horário em UTC (ISO 8601); durações em segundos inteiros."""
-    where, p = filtros(args)
-    sql = f"""
-    WITH ev AS (
-        SELECT sessao_id, projeto, ts,
-               (julianday(ts) - julianday(LAG(ts) OVER (PARTITION BY sessao_id ORDER BY ts))) * 86400 AS gap
-        FROM eventos WHERE tipo = 'atividade' AND {where}
-    ), s AS (
-        SELECT sessao_id, MAX(projeto) AS projeto, MIN(ts) AS inicio, MAX(ts) AS fim,
-               SUM(CASE WHEN gap <= {PAUSA_MAX_S} THEN gap ELSE 0 END) AS ativo
-        FROM ev GROUP BY sessao_id
-    )
-    SELECT s.*,
-        (julianday(s.fim) - julianday(s.inicio)) * 86400 AS duracao,
-        (SELECT COUNT(*) FROM eventos e WHERE e.sessao_id = s.sessao_id AND e.tipo = 'prompt') AS prompts,
-        (SELECT COUNT(*) FROM chamadas c WHERE c.sessao_id = s.sessao_id) AS chamadas,
-        (SELECT COUNT(*) FROM tool_calls t WHERE t.sessao_id = s.sessao_id) AS tools,
-        (SELECT SUM(CASE WHEN {db.ERRO_REAL} THEN 1 ELSE 0 END) FROM tool_calls t WHERE t.sessao_id = s.sessao_id) AS erros,
-        (SELECT SUM(custo_usd) FROM chamadas c WHERE c.sessao_id = s.sessao_id) AS custo
-    FROM s ORDER BY inicio DESC LIMIT ?"""
-    linhas = [
-        {
-            "sessao": r["sessao_id"],
-            "projeto": r["projeto"] or "?",
-            "inicio": r["inicio"],
-            # julianday() devolve ruído de ponto flutuante (29.9999982 s): arredonda, não trunca
-            "duracao_s": round(r["duracao"] or 0),
-            "ativo_s": round(r["ativo"] or 0),
-            "prompts": r["prompts"],
-            "chamadas": r["chamadas"],
-            "tools": r["tools"],
-            "erros_tool": r["erros"] or 0,
-            "custo_usd": r["custo"],
-        }
-        for r in con.execute(sql, [*p, args.limite])
-    ]
-    por_sessao = comportamento.por_sessao(con, [l["sessao"] for l in linhas])
-    for l in linhas:  # categoria (T14) e one-shot (T15), calculados do que já está no banco
-        c = por_sessao.get(l["sessao"], {})
-        l["categoria"] = c.get("categoria")
-        l["turnos_edicao"] = c.get("turnos_edicao", 0)
-        l["retries"] = c.get("retries", 0)
-        l["one_shot"] = c.get("one_shot")  # fração de 0 a 1; None se a sessão não teve edição
-    return linhas
+    """Sessões com números crus (consultas.sessoes). Horário em UTC; durações em segundos inteiros."""
+    return consultas.sessoes(con, filtro(args), args.limite)
 
 
 def cmd_sessoes(con, args) -> None:
@@ -267,30 +158,8 @@ def cmd_sessoes(con, args) -> None:
 
 
 def linhas_tools(con, args) -> list[dict]:
-    """Uso por tool com números crus. taxa_erro é uma fração de 0 a 1 e NÃO conta as recusas do usuário (T23).
-
-    `recusadas`: tools que o usuário negou na tela de permissão. `categorias`: erros por categoria (design 6.4);
-    `sem_categoria` = erros gravados antes da T23 (rode `tc ingest --tudo`).
-    """
-    where, p = filtros(args)
-    categorias: dict[str, dict[str, int]] = {}
-    for r in con.execute(f"""
-            SELECT tool, COALESCE(erro_categoria, 'sem_categoria') AS cat, COUNT(*) AS n FROM tool_calls
-            WHERE erro = 1 AND {where} GROUP BY tool, cat""", p):
-        categorias.setdefault(r["tool"], {})[r["cat"]] = r["n"]
-    return [
-        {
-            "tool": r["tool"],
-            "chamadas": r["n"],
-            "erros": r["erros"],
-            "taxa_erro": r["erros"] / r["n"] if r["n"] else None,
-            "recusadas": categorias.get(r["tool"], {}).get("recusado_usuario", 0),
-            "categorias": {c: n for c, n in categorias.get(r["tool"], {}).items() if c != "recusado_usuario"},
-        }
-        for r in con.execute(f"""
-            SELECT tool, COUNT(*) AS n, SUM(CASE WHEN {db.ERRO_REAL} THEN 1 ELSE 0 END) AS erros FROM tool_calls
-            WHERE {where} GROUP BY tool ORDER BY n DESC""", p)
-    ]
+    """Uso por tool com números crus (consultas.tools); as recusas do usuário não contam como erro (T23)."""
+    return consultas.tools(con, filtro(args))
 
 
 def cmd_tools(con, args) -> None:
@@ -320,10 +189,8 @@ def cmd_tools(con, args) -> None:
 
 
 def linhas_comportamento(con, args) -> list[dict]:
-    """Turnos por categoria (T14) com one-shot (T15) e custo, das sessões com atividade no filtro."""
-    where, p = filtros(args)
-    sessoes = [r[0] for r in con.execute(f"SELECT DISTINCT sessao_id FROM eventos WHERE {where}", p)]
-    return comportamento.por_categoria(comportamento.montar_turnos(con, sessoes))
+    """Turnos por categoria (T14) com one-shot (T15) e custo (consultas.turnos_por_categoria)."""
+    return consultas.turnos_por_categoria(con, filtro(args))
 
 
 def cmd_comportamento(con, args) -> None:
@@ -355,8 +222,7 @@ def cmd_diagnostico(con, args) -> None:
             motivo = "não encontrada" if not ids else f"ambígua ({len(ids)} sessões começam assim)"
             sys.exit(f"sessão '{args.sessao}' {motivo}")
     else:
-        where, p = filtros(args)
-        ids = [r[0] for r in con.execute(f"SELECT DISTINCT sessao_id FROM eventos WHERE {where}", p)]
+        ids = consultas.ids_de_sessoes(con, filtro(args))
     todas = diagnostico.diagnosticar(con, limites, ids)
     recs = todas[:args.limite] if args.limite else todas
     if args.json:
@@ -492,8 +358,7 @@ def cmd_painel(con, args) -> None:
         while True:
             claude_code.ingerir(con, apelidos=apelidos)
             linhas = dados_resumo(con, args)
-            where, p = filtros(args)  # os mesmos filtros da tabela (hoje, --projeto, --ferramenta...)
-            total = con.execute(f"SELECT SUM(custo_usd) FROM chamadas WHERE {where}", p).fetchone()[0]
+            total = consultas.custo_total(con, filtro(args))  # os mesmos filtros da tabela (hoje, --projeto...)
             sys.stdout.write("\033[2J\033[H")  # limpa a tela
             print(f"token-controler · hoje · atualizado {datetime.now():%H:%M:%S} "
                   f"(a cada {args.intervalo}s, Ctrl+C para sair)\n")
@@ -564,7 +429,7 @@ def main(argv: list[str] | None = None) -> None:
     p.set_defaults(func=cmd_ingest)
 
     p = com_json(com_filtros(sub.add_parser("resumo", help="tokens, chamadas, erros e custo agrupados")))
-    p.add_argument("--por", choices=list(AGRUPAMENTOS), default="projeto")
+    p.add_argument("--por", choices=list(consultas.AGRUPAMENTOS), default="projeto")
     p.set_defaults(func=cmd_resumo)
 
     p = com_json(com_filtros(sub.add_parser("sessoes", help="lista sessões com duração e tempo ativo")))

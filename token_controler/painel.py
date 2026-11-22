@@ -1,6 +1,7 @@
 """Painel do `tc painel`, tela do `tc live` e árvore do `tc sessao`, desenhados com rich (única dependência de runtime, usada só aqui).
 
-Duas camadas: `coletar` só consulta o banco e devolve números; `renderizar` transforma isso em rich.
+Duas camadas: `coletar` (= `consultas.periodo`, só biblioteca padrão) devolve números; `renderizar` transforma isso
+em rich.
 O painel mostra apenas números e metadados já gravados (nenhum texto de conversa). Inspirado no painel
 do CodeBurn: abas de período, resumo no topo e uma grade de caixas.
 """
@@ -11,7 +12,7 @@ import sqlite3
 import sys
 import time
 from contextlib import contextmanager, nullcontext
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
 from rich.console import Console, Group
 from rich.live import Live
@@ -20,7 +21,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
-from . import agora, comportamento, db, diagnostico, qualidade
+from . import agora, comportamento, consultas, diagnostico
 from .fontes import claude_code
 from .formato import fmt_tokens, fmt_usd
 
@@ -31,7 +32,6 @@ except ImportError:  # pragma: no cover - depende do sistema
 
 PERIODOS = (("hoje", "Hoje"), ("7d", "7 dias"), ("30d", "30 dias"), ("mes", "Mês"), ("tudo", "Tudo"))
 NOMES = dict(PERIODOS)
-DIAS_NO_PAINEL = 8
 GRADIENTE = ("#5f87ff", "#5fafff", "#5fd7d7", "#d7d75f", "#ffaf5f", "#ff875f")  # azul -> laranja
 SEVERIDADE = {"alta": ("▲", "bold red"), "media": ("●", "dark_orange"), "baixa": ("○", "grey62")}
 CONFIANCA = {"alta": "green", "media": "yellow", "baixa": "red", "sem_dados": "grey62"}
@@ -39,100 +39,9 @@ CONFIANCA = {"alta": "green", "media": "yellow", "baixa": "red", "sem_dados": "g
 
 # ---------- coleta ----------
 
-def inicio_do_periodo(periodo: str, hoje: date) -> str | None:
-    """Primeiro dia (AAAA-MM-DD, horário local) do período; None = sem limite (tudo)."""
-    if periodo == "hoje":
-        return hoje.isoformat()
-    if periodo == "7d":
-        return (hoje - timedelta(days=6)).isoformat()
-    if periodo == "30d":
-        return (hoje - timedelta(days=29)).isoformat()
-    if periodo == "mes":
-        return hoje.replace(day=1).isoformat()
-    return None
-
-
-def _filtro(desde: str | None, projeto: str | None, ferramenta: str | None) -> tuple[str, list]:
-    cond, params = [], []
-    if desde:
-        cond.append("date(ts, 'localtime') >= ?")
-        params.append(desde)
-    if projeto:
-        cond.append("projeto = ?")
-        params.append(projeto)
-    if ferramenta:
-        cond.append("ferramenta = ?")
-        params.append(ferramenta)
-    return (" AND ".join(cond) or "1=1"), params
-
-
-def _dia_local(ts: str) -> str | None:
-    try:
-        return datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone().date().isoformat()
-    except (ValueError, AttributeError):
-        return None
-
-
-def coletar(con: sqlite3.Connection, periodo: str, hoje: date, limites: dict, projeto: str | None = None,
-            ferramenta: str | None = None, cache: dict | None = None) -> dict:
-    """Todos os números do painel para o período. `cache` evita refazer o trabalho pesado se o banco não mudou."""
-    desde = inicio_do_periodo(periodo, hoje)
-    cond, p = _filtro(desde, projeto, ferramenta)
-    sem_periodo, p0 = _filtro(None, projeto, ferramenta)
-
-    r = con.execute(f"""SELECT COUNT(*) AS chamadas, COUNT(DISTINCT sessao_id) AS sessoes, SUM(custo_usd) AS custo,
-                        SUM(input_tokens) AS entrada, SUM(output_tokens) AS saida,
-                        SUM(cache_write_5m + cache_write_1h) AS cw, SUM(cache_read) AS cr,
-                        SUM(erro_api = 0 AND custo_usd IS NULL) AS sem_preco
-                        FROM chamadas WHERE {cond}""", p).fetchone()
-    entrada, cw, cr = r["entrada"] or 0, r["cw"] or 0, r["cr"] or 0
-    total_in = entrada + cw + cr
-    resumo = {"chamadas": r["chamadas"], "sessoes": r["sessoes"], "custo": r["custo"], "entrada": entrada,
-              "saida": r["saida"] or 0, "cache_escrito": cw, "cache_lido": cr,
-              "cache_taxa": cr / total_in if total_in else None, "sem_preco": r["sem_preco"] or 0}
-
-    dias = [dict(x) for x in con.execute(f"""SELECT date(ts, 'localtime') AS dia, SUM(custo_usd) AS custo,
-                COUNT(*) AS chamadas FROM chamadas WHERE {sem_periodo} GROUP BY dia
-                ORDER BY dia DESC LIMIT {DIAS_NO_PAINEL}""", p0)]
-    projetos = [dict(x) for x in con.execute(f"""SELECT COALESCE(projeto, '?') AS projeto, SUM(custo_usd) AS custo,
-                COUNT(DISTINCT sessao_id) AS sessoes FROM chamadas WHERE {cond}
-                GROUP BY 1 ORDER BY SUM(custo_usd) DESC LIMIT 8""", p)]
-    modelos = [dict(x) for x in con.execute(f"""SELECT COALESCE(modelo, '?') AS modelo, SUM(custo_usd) AS custo,
-                COUNT(*) AS chamadas, SUM(cache_read) AS cr,
-                SUM(input_tokens + cache_write_5m + cache_write_1h + cache_read) AS total
-                FROM chamadas WHERE erro_api = 0 AND {cond} GROUP BY 1 ORDER BY SUM(custo_usd) DESC LIMIT 8""", p)]
-    for m in modelos:
-        m["cache_taxa"] = (m["cr"] or 0) / m["total"] if m["total"] else None
-    tools = [dict(x) for x in con.execute(f"""SELECT tool, COUNT(*) AS n, SUM(CASE WHEN {db.ERRO_REAL} THEN 1 ELSE 0 END) AS erros
-                FROM tool_calls WHERE {cond} GROUP BY tool ORDER BY n DESC""", p)]
-    mcp: dict[str, int] = {}
-    for t in tools:
-        if t["tool"].startswith("mcp__"):
-            servidor = t["tool"].split("__")[1] if t["tool"].count("__") >= 2 else t["tool"]
-            mcp[servidor] = mcp.get(servidor, 0) + t["n"]
-    shell = [dict(x) for x in con.execute(f"""SELECT subtipo, COUNT(*) AS n FROM tool_calls
-                WHERE subtipo IS NOT NULL AND {cond} GROUP BY subtipo ORDER BY n DESC""", p)]
-
-    # a parte pesada (turnos e diagnóstico) só é refeita quando o banco muda
-    versao = tuple(con.execute("""SELECT (SELECT COUNT(*) FROM chamadas), (SELECT COUNT(*) FROM tool_calls),
-                                         (SELECT COUNT(*) FROM eventos)""").fetchone())
-    chave = (periodo, projeto, ferramenta, hoje, versao)
-    if cache is not None and chave in cache:
-        atividades, recomendacoes = cache[chave]
-    else:
-        sessoes = [x[0] for x in con.execute(f"SELECT DISTINCT sessao_id FROM eventos WHERE {cond}", p)]
-        turnos = [t for t in comportamento.montar_turnos(con, sessoes)
-                  if desde is None or (t.inicio and (_dia_local(t.inicio) or "") >= desde)]
-        atividades = comportamento.por_categoria(turnos)
-        recomendacoes = diagnostico.diagnosticar(con, limites, sessoes)
-        if cache is not None:
-            cache.clear()
-            cache[chave] = (atividades, recomendacoes)
-
-    return {"periodo": periodo, "resumo": resumo, "dias": dias, "projetos": projetos, "modelos": modelos,
-            "tools": tools, "mcp": sorted(mcp.items(), key=lambda kv: -kv[1]), "shell": shell,
-            "atividades": atividades, "recomendacoes": recomendacoes,
-            "qualidade": qualidade.coletar(con, ferramenta), "modo": db.ler_modo(con)}
+# a coleta mora em consultas.py, que o tc web também usa sem carregar o rich; os nomes antigos continuam valendo
+inicio_do_periodo = consultas.inicio_do_periodo
+coletar = consultas.periodo
 
 
 # ---------- desenho ----------
