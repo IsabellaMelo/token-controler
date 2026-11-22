@@ -103,7 +103,7 @@ def coletar(con: sqlite3.Connection, periodo: str, hoje: date, limites: dict, pr
                 FROM chamadas WHERE erro_api = 0 AND {cond} GROUP BY 1 ORDER BY SUM(custo_usd) DESC LIMIT 8""", p)]
     for m in modelos:
         m["cache_taxa"] = (m["cr"] or 0) / m["total"] if m["total"] else None
-    tools = [dict(x) for x in con.execute(f"""SELECT tool, COUNT(*) AS n, SUM(COALESCE(erro, 0)) AS erros
+    tools = [dict(x) for x in con.execute(f"""SELECT tool, COUNT(*) AS n, SUM(CASE WHEN {db.ERRO_REAL} THEN 1 ELSE 0 END) AS erros
                 FROM tool_calls WHERE {cond} GROUP BY tool ORDER BY n DESC""", p)]
     mcp: dict[str, int] = {}
     for t in tools:

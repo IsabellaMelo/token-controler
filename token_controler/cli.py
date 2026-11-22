@@ -132,7 +132,7 @@ def linhas_resumo(con, args) -> list[dict]:
             WHERE tipo = 'prompt' AND {where} GROUP BY grupo""", p):
             linhas.setdefault(r["grupo"], {"grupo": r["grupo"]})["prompts"] = r["n"]
         for r in con.execute(f"""
-            SELECT {g} AS grupo, COUNT(*) AS n, SUM(COALESCE(erro, 0)) AS erros FROM tool_calls
+            SELECT {g} AS grupo, COUNT(*) AS n, SUM(CASE WHEN {db.ERRO_REAL} THEN 1 ELSE 0 END) AS erros FROM tool_calls
             WHERE {where} GROUP BY grupo""", p):
             d = linhas.setdefault(r["grupo"], {"grupo": r["grupo"]})
             d["tools"], d["erros_tool"] = r["n"], r["erros"]
@@ -219,7 +219,7 @@ def linhas_sessoes(con, args) -> list[dict]:
         (SELECT COUNT(*) FROM eventos e WHERE e.sessao_id = s.sessao_id AND e.tipo = 'prompt') AS prompts,
         (SELECT COUNT(*) FROM chamadas c WHERE c.sessao_id = s.sessao_id) AS chamadas,
         (SELECT COUNT(*) FROM tool_calls t WHERE t.sessao_id = s.sessao_id) AS tools,
-        (SELECT SUM(COALESCE(erro,0)) FROM tool_calls t WHERE t.sessao_id = s.sessao_id) AS erros,
+        (SELECT SUM(CASE WHEN {db.ERRO_REAL} THEN 1 ELSE 0 END) FROM tool_calls t WHERE t.sessao_id = s.sessao_id) AS erros,
         (SELECT SUM(custo_usd) FROM chamadas c WHERE c.sessao_id = s.sessao_id) AS custo
     FROM s ORDER BY inicio DESC LIMIT ?"""
     linhas = [
@@ -267,17 +267,28 @@ def cmd_sessoes(con, args) -> None:
 
 
 def linhas_tools(con, args) -> list[dict]:
-    """Uso por tool com números crus. taxa_erro é uma fração de 0 a 1."""
+    """Uso por tool com números crus. taxa_erro é uma fração de 0 a 1 e NÃO conta as recusas do usuário (T23).
+
+    `recusadas`: tools que o usuário negou na tela de permissão. `categorias`: erros por categoria (design 6.4);
+    `sem_categoria` = erros gravados antes da T23 (rode `tc ingest --tudo`).
+    """
     where, p = filtros(args)
+    categorias: dict[str, dict[str, int]] = {}
+    for r in con.execute(f"""
+            SELECT tool, COALESCE(erro_categoria, 'sem_categoria') AS cat, COUNT(*) AS n FROM tool_calls
+            WHERE erro = 1 AND {where} GROUP BY tool, cat""", p):
+        categorias.setdefault(r["tool"], {})[r["cat"]] = r["n"]
     return [
         {
             "tool": r["tool"],
             "chamadas": r["n"],
             "erros": r["erros"],
             "taxa_erro": r["erros"] / r["n"] if r["n"] else None,
+            "recusadas": categorias.get(r["tool"], {}).get("recusado_usuario", 0),
+            "categorias": {c: n for c, n in categorias.get(r["tool"], {}).items() if c != "recusado_usuario"},
         }
         for r in con.execute(f"""
-            SELECT tool, COUNT(*) AS n, SUM(COALESCE(erro,0)) AS erros FROM tool_calls
+            SELECT tool, COUNT(*) AS n, SUM(CASE WHEN {db.ERRO_REAL} THEN 1 ELSE 0 END) AS erros FROM tool_calls
             WHERE {where} GROUP BY tool ORDER BY n DESC""", p)
     ]
 
@@ -287,8 +298,25 @@ def cmd_tools(con, args) -> None:
     if args.json:
         emitir_json(tools)
         return
-    linhas = [[t["tool"], t["chamadas"], t["erros"], fmt_pct(t["taxa_erro"])] for t in tools]
-    print(tabela(["tool", "chamadas", "erros", "taxa de erro"], linhas))
+    com_recusa = any(t["recusadas"] for t in tools)
+    cab = ["tool", "chamadas", "erros", "taxa de erro"] + (["recusadas"] if com_recusa else [])
+    linhas = [[t["tool"], t["chamadas"], t["erros"], fmt_pct(t["taxa_erro"])] + ([t["recusadas"]] if com_recusa else [])
+              for t in tools]
+    print(tabela(cab, linhas))
+    por_cat: dict[str, dict[str, int]] = {}
+    for t in tools:
+        for cat, n in t["categorias"].items():
+            por_cat.setdefault(cat, {})[t["tool"]] = n
+    if por_cat:
+        print("\nErros por categoria (as recusas do usuário ficam fora):")
+        ordem = sorted(por_cat, key=lambda c: -sum(por_cat[c].values()))
+        print(tabela(["categoria", "erros", "tools"], [
+            [c, sum(por_cat[c].values()),
+             ", ".join(f"{k} ({n})" for k, n in sorted(por_cat[c].items(), key=lambda x: -x[1])[:4])] for c in ordem]))
+        if "sem_categoria" in por_cat:
+            print("sem_categoria = erros lidos antes da T23: rode `tc ingest --tudo` para classificá-los.")
+    if com_recusa:
+        print("recusadas = tools que você negou na tela de permissão; não contam como erro.")
 
 
 def linhas_comportamento(con, args) -> list[dict]:
@@ -425,6 +453,13 @@ def cmd_qualidade(con, args) -> None:
     for q in dados:
         for motivo in q["motivos"]:
             print(f"- {q['ferramenta']} · confiança {q['confianca']}: {motivo}")
+        if q["erros_tool"]:
+            print(f"- {q['ferramenta']} · erros de tool sem categoria definida (outro): {q['erros_tool_outro']} de "
+                  f"{q['erros_tool']} ({fmt_pct(q['erros_tool_outro'] / q['erros_tool'])}); quanto maior, mais regras faltam "
+                  f"em regras_erros.py")
+        if q["erros_tool_sem_categoria"]:
+            print(f"- {q['ferramenta']} · {q['erros_tool_sem_categoria']} erro(s) lidos antes da T23, ainda sem categoria: "
+                  f"rode `tc ingest --tudo`")
     print("Confiança: baixa = falta preço, tokens ou há linhas ilegíveis; media = só falta a contagem de "
           "linhas ilegíveis; alta = nenhum problema.\n"
           "'sem custo' = origem sem_preco no modo atual (no modo display inclui chamadas sem custo registrado).\n"

@@ -1,5 +1,6 @@
 """Rótulo `debug` derivado do prompt: só o rótulo é gravado; o texto não vai para o banco nem para a saída."""
 
+import re
 import json
 import sqlite3
 
@@ -137,7 +138,8 @@ def test_o_texto_do_prompt_nao_vai_para_o_banco(con, tmp_path):
     con.commit()
     conteudo = (tmp_path / "r.db").read_bytes()
     for texto in (MARCA, "corrija", "botao", "estranho", "falhou", "not working", "fix the bug", "saida"):
-        assert texto.encode() not in conteudo, texto
+        # palavra inteira: o rótulo de categoria de erro `teste_falhou` (T23) contém "falhou" e é legítimo
+        assert not re.search(rb"(?<![A-Za-z_])" + re.escape(texto.encode()) + rb"(?![A-Za-z_])", conteudo), texto
 
 
 def test_o_texto_nao_aparece_na_saida_de_nenhum_comando(tmp_path, logs, monkeypatch, capsys):

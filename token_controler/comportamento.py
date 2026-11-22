@@ -16,6 +16,7 @@ import sqlite3
 from dataclasses import dataclass, field
 
 from .comandos import BUILD, GIT, TESTE, TOOLS_SHELL
+from .db import eh_erro_real
 from .comandos import LEITURA as SHELL_LEITURA
 from .rotulos import DEBUG
 
@@ -151,10 +152,11 @@ def montar_turnos(con: sqlite3.Connection, sessoes: list[str]) -> list[Turno]:
         def indice(sessao: str, ts: str) -> int:
             return bisect.bisect_right(prompts.get(sessao, []), ts) - 1
 
-        for r in con.execute(f"""SELECT sessao_id, projeto, ts, tool, erro, alvo_hash, subtipo FROM tool_calls
+        for r in con.execute(f"""SELECT sessao_id, projeto, ts, tool, erro, erro_categoria, alvo_hash, subtipo FROM tool_calls
                                  WHERE subagente = 0 AND sessao_id IN ({marcas}) ORDER BY ts, rowid""", lote):
             t = _turno(turnos, r["sessao_id"], r["projeto"], indice(r["sessao_id"], r["ts"]), r["ts"])
-            t.chamadas.append({"tool": r["tool"], "erro": r["erro"], "alvo": r["alvo_hash"],
+            t.chamadas.append({"tool": r["tool"], "erro": int(eh_erro_real(r["erro"], r["erro_categoria"])) if r["erro"] is not None else None,
+                               "alvo": r["alvo_hash"],
                                "subtipo": r["subtipo"]})
         for r in con.execute(f"""SELECT sessao_id, projeto, ts, custo_usd, erro_api FROM chamadas
                                  WHERE sessao_id IN ({marcas})""", lote):

@@ -36,7 +36,7 @@ tc resumo --por dia --desde 2026-11-01
 tc resumo --por modelo         # confere se algum modelo ficou sem preço
 tc resumo --por sessao --hoje
 tc sessoes                     # duração, tempo ativo, prompts, chamadas, custo
-tc tools --projeto rpps        # uso e taxa de erro por tool
+tc tools --projeto rpps        # uso, taxa de erro e erros por categoria, por tool (recusas do usuário ficam fora)
 tc diagnostico                 # onde as sessões ficaram caras ou lentas, com a evidência
 tc sessao                      # a sessão mais recente em árvore: prompts, tools, subagentes, pausas e ⚠
 tc sessao a1b2c3d4             # uma sessão específica (o começo do ID, como em `tc sessoes`)
@@ -339,6 +339,19 @@ Para preencher sessões antigas, `tc ingest --tudo` (só enquanto o log existir)
 **Comandos de shell** não aparecem por padrão. Com `--comandos`, são lidos **na hora, do log original**, em memória, e
 nunca gravados (com o log já apagado, o nó mostra "comando indisponível"). `--comandos` não vale com `--json`.
 
+### Erros por categoria (`tc tools`)
+
+Quando uma tool falha, o `tc` lê a mensagem de erro **só em memória**, classifica por regras fixas (`token_controler/regras_erros.py`) e
+grava **apenas** a categoria (`tool_calls.erro_categoria`) e o código de saída do shell (`exit_code`). A mensagem nunca é gravada.
+As categorias: `recusado_usuario`, `bloqueado_permissao`, `mcp_auth`, `modulo_ausente`, `comando_ausente`, `sintaxe_shell`,
+`edicao_invalida`, `arquivo_ausente`, `permissao`, `timeout`, `teste_falhou`, `rede` e `outro` (design §6.4).
+
+- **`recusado_usuario`** (você negou a tool na tela de permissão) **não conta como erro**: fica fora da taxa de `tc tools`,
+  `tc resumo`, `tc sessoes`, `tc live` e dos loops; `tc tools` mostra a coluna `recusadas` à parte.
+- Erros lidos antes desta versão aparecem como `sem_categoria`: rode `tc ingest --tudo` (só reclassifica o que o log ainda tem).
+- O `tc ingest` também grava, por tool e chamada, o `turno`, a ordem `seq` na sessão, a `chamada_id` que pediu a tool, o
+  `subagente_id` e o `servidor_mcp` (para a futura tela de sequência do `tc web`).
+
 ### Qualidade dos dados
 
 `tc qualidade` (também com `--json` e `--ferramenta`) diz quanto dá para confiar nos números, por ferramenta:
@@ -347,6 +360,8 @@ nunca gravados (com o log já apagado, o nó mostra "comando indisponível"). `-
 - **sem tokens**: chamadas em que todos os contadores de tokens são zero. O `tc` não estima tokens: só aponta a lacuna;
 - **sem preço**: chamadas de modelos fora de `precos.py` (confere contra a tabela atual, em qualquer modo de custo);
 - **registrado / calculado / sem custo**: de onde veio o custo de cada chamada;
+- **erros de tool em `outro`**: quantos erros não casaram com nenhuma categoria (quanto maior, mais regras faltam em
+  `regras_erros.py`) e quantos ainda estão sem categoria (rode `tc ingest --tudo`);
 - **confiança**: `baixa` (falta preço ou tokens, ou há linhas ilegíveis), `media` (só falta a contagem de linhas
   ilegíveis) ou `alta`. Os motivos aparecem abaixo da tabela. Os limites são uma proposta inicial.
 

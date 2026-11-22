@@ -37,7 +37,10 @@ CREATE TABLE IF NOT EXISTS chamadas (
     erro_api       INTEGER NOT NULL DEFAULT 0,
     arquivo        TEXT NOT NULL,
     custo_registrado REAL,                -- custo que o log trouxe (costUSD); NULL = o log não trouxe
-    origem_custo   TEXT                   -- registrado, calculado, sem_preco; NULL = erro de API
+    origem_custo   TEXT,                  -- registrado, calculado, sem_preco; NULL = erro de API
+    turno          INTEGER,               -- T22: 1 turno = 1 prompt + tudo até a resposta; 0 = antes do 1º prompt; NULL = não gravado
+    seq            INTEGER,               -- T22: ordem na sessão (compartilhada com tool_calls); NULL = não gravado
+    subagente_id   TEXT                   -- T22: agentId do subagente que fez a chamada; NULL = thread principal
 );
 
 -- Configurações do próprio tc (por exemplo, o modo de custo)
@@ -62,7 +65,14 @@ CREATE TABLE IF NOT EXISTS tool_calls (
     subtipo    TEXT,                      -- só para shell: teste, build, git, leitura, outro (nunca o comando)
     alvo_nome  TEXT,                      -- só o NOME do arquivo, sem pasta (T19, em teste; ver `tc limpar-nomes`); NULL = n/a
     leitura_ini INTEGER,                  -- Read: linha inicial lida (1 sem offset); NULL = não é Read ou intervalo não gravado
-    leitura_qtd INTEGER                   -- Read: quantas linhas (limit); NULL com leitura_ini preenchido = até o fim
+    leitura_qtd INTEGER,                  -- Read: quantas linhas (limit); NULL com leitura_ini preenchido = até o fim
+    turno      INTEGER,                   -- T22: turno da tool (ver chamadas.turno)
+    seq        INTEGER,                   -- T22: ordem na sessão (compartilhada com chamadas)
+    chamada_id TEXT,                      -- T22: chamadas.id da chamada ao modelo que pediu a tool (por tool_use_id)
+    subagente_id TEXT,                    -- T22: na chamada Agent, o subagente que ela abriu; nas tools do subagente, o próprio
+    servidor_mcp TEXT,                    -- T22: mcp__google-drive__x -> google-drive; NULL = não é MCP
+    exit_code  INTEGER,                   -- T23: código de saída de shell com erro (só o número); NULL = n/a
+    erro_categoria TEXT                   -- T23: rótulo da lista fixa de regras_erros.py (nunca a mensagem); NULL = sem erro ou não classificado
 );
 
 -- Linha do tempo mínima (prompts e atividade) para contar prompts e tempo ativo
@@ -117,6 +127,17 @@ def _migrar(con: sqlite3.Connection) -> None:
                          ("alvo_nome", "TEXT"), ("leitura_ini", "INTEGER"), ("leitura_qtd", "INTEGER")):
         if coluna not in colunas_tools:
             con.execute(f"ALTER TABLE tool_calls ADD COLUMN {coluna} {tipo}")
+    # T22 e T23: NULL até `tc ingest --tudo`
+    for coluna, tipo in (("turno", "INTEGER"), ("seq", "INTEGER"), ("chamada_id", "TEXT"), ("subagente_id", "TEXT"),
+                         ("servidor_mcp", "TEXT"), ("exit_code", "INTEGER"), ("erro_categoria", "TEXT")):
+        if coluna not in colunas_tools:
+            con.execute(f"ALTER TABLE tool_calls ADD COLUMN {coluna} {tipo}")
+    colunas = {r["name"] for r in con.execute("PRAGMA table_info(chamadas)")}
+    for coluna, tipo in (("turno", "INTEGER"), ("seq", "INTEGER"), ("subagente_id", "TEXT")):
+        if coluna not in colunas:
+            con.execute(f"ALTER TABLE chamadas ADD COLUMN {coluna} {tipo}")
+    con.execute("CREATE INDEX IF NOT EXISTS ix_chamadas_sessao_seq ON chamadas(sessao_id, seq)")
+    con.execute("CREATE INDEX IF NOT EXISTS ix_tools_sessao_seq ON tool_calls(sessao_id, seq)")
     colunas = {r["name"] for r in con.execute("PRAGMA table_info(chamadas)")}
     if "custo_registrado" not in colunas:
         con.execute("ALTER TABLE chamadas ADD COLUMN custo_registrado REAL")
@@ -126,6 +147,16 @@ def _migrar(con: sqlite3.Connection) -> None:
         # `tc ingest --tudo` relê os logs que ainda existirem e captura o registrado.
         recalcular(con, ler_modo(con))
         con.commit()
+
+
+# Erro "de verdade" de uma tool (T23): falhou e não foi só o usuário negando a permissão. A recusa fica fora da taxa de
+# erro e dos loops. Uso em SQL: `SUM(CASE WHEN {ERRO_REAL} THEN 1 ELSE 0 END)`. Linhas ainda sem categoria contam como erro.
+ERRO_REAL = "(COALESCE(erro, 0) = 1 AND COALESCE(erro_categoria, '') <> 'recusado_usuario')"
+
+
+def eh_erro_real(erro, categoria) -> bool:
+    """Mesma regra de `ERRO_REAL`, para linhas já lidas: `erro` 1 e categoria diferente de `recusado_usuario`."""
+    return erro == 1 and categoria != "recusado_usuario"
 
 
 def ler_modo(con: sqlite3.Connection) -> str:

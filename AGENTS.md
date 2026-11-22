@@ -33,6 +33,13 @@ Ele roda num notebook corporativo, com dados sensíveis. Por isso as regras abai
    ser gravados em `tool_calls.leitura_ini` e `leitura_qtd`, para distinguir reler o mesmo trecho de ler outro trecho do
    arquivo. Só números inteiros; nenhum outro argumento (`pages`, padrões de busca, textos) é gravado. A chave
    `gravar_trecho_leitura` (padrão `true`) desliga a gravação e `tc limpar-trechos` apaga as colunas.
+   **Quarta exceção, aprovada pelo dono do projeto em 22/11/2026 (T23):** quando uma tool falha (`is_error`), a MENSAGEM de
+   erro do `tool_result` pode ser examinada em memória, só por `token_controler/regras_erros.py`, para derivar a categoria
+   (`tool_calls.erro_categoria`, um rótulo de lista fixa) e o código de saída de shell (`tool_calls.exit_code`, um inteiro).
+   Só o rótulo e o número são gravados. A mensagem nunca é gravada, impressa, logada nem passada a outro código, e as
+   regras são determinísticas (regex), sem estimar nada. Também são lidos dois campos curtos do log que não são texto
+   de conversa: `toolDenialKind` (lista fixa) e o `agentId` do resultado do subagente (um ID). Há um teste que garante que
+   nenhum texto de erro chega ao banco.
 2. **Nunca fazer chamada de rede.** Nada de `requests`, `urllib`, download de tabela de preços ou telemetria.
    Os preços ficam em `token_controler/precos.py`, editados à mão.
 3. **Só biblioteca padrão do Python 3.9+.** Sem dependências de runtime. `pytest` é a única dependência de desenvolvimento.
@@ -57,6 +64,7 @@ token_controler/
   painel.py           # `tc painel`, tela do `tc live` e árvore do `tc sessao` (única parte que usa `rich`)
   agora.py            # dados e texto simples da tela do `tc live` (só biblioteca padrão)
   detalhe.py          # dados e árvore neutra do `tc sessao` (só biblioteca padrão; reusa as regras de diagnostico.py)
+  regras_erros.py     # categoria e exit code de um erro de tool (função pura; a mensagem nunca é gravada)
   db.py               # schema SQLite e conexão
   precos.py           # tabela de preços (USD por milhão de tokens)
   fontes/
