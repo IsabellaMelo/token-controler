@@ -262,7 +262,7 @@ CLI `tc` (comandos em português):
 | `tc limpar-trechos` | apaga os trechos de leitura (`leitura_ini`, `leitura_qtd`) gravados (T19, em teste) | ✅ |
 | `tc comportamento [--json]` | categoria dos turnos, one-shot e custo por categoria | ✅ |
 | `tc qualidade [--ferramenta] [--json]` | confiança dos dados (linhas ruins, sem preço, sem tokens, origem do custo) | ✅ (nível de detalhe entra com a T09; a contagem de erros em `outro` entra com a T23) |
-| `tc web [--porta N]` | painel local no navegador: Hoje, detalhe da sessão e sequência da sessão (8.1) | Fase 2.5 (T24 a T28) |
+| `tc web [--porta N]` | painel local no navegador: Hoje, detalhe da sessão e sequência da sessão (8.1) | Hoje ✅ (T24, `--demo` para testes); T25 a T28 pendentes |
 | `--json` em todos | análise no pandas | Fase 1.5 |
 
 **Aba no VS Code:** `Ctrl+Shift+P` → *Terminal: Create Terminal in Editor Area* → `tc live` ou `tc painel`.
@@ -309,6 +309,25 @@ Uma visão em páginas HTML, para ver sem terminal e para gráficos que o termin
 com dados da sessão.
 
 **Configuração** (prioridade, como no ccusage): argumentos do CLI > `~/.token-controler/config.json` > padrões. Apelidos de projeto em `projetos.json`.
+
+**Decisões da implementação (T24, 22/11/2026):**
+- Porta padrão 8765 (`--porta` > `web_porta` no config.json > 8765); ocupada → até 20 portas seguintes. No Windows o
+  socket usa `SO_EXCLUSIVEADDRUSE` (sem isso, `SO_REUSEADDR` deixaria dois servidores na mesma porta).
+- Cabeçalhos: `Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:` (sem
+  script, sem recurso externo), `nosniff`, `no-referrer`, `no-store`; sem CORS; `log_message` desligado. `Host` aceito:
+  `127.0.0.1:<porta>` e `localhost:<porta>`; outro → 403. Método que não é `GET` → 405.
+- CSS numa folha comum (`/estilo.css`) com classes; `style=` só para a geometria calculada (largura, altura, fatias da
+  rosca), por isso o `'unsafe-inline'` só em `style-src`. Modelos HTML em `token_controler/web/modelos/` (`string.Template`);
+  todo valor entra escapado, salvo trechos montados pelo próprio `telas.py`.
+- Banco: o servidor liga o WAL e abre uma conexão de escrita só para a thread de ingest (5 s, com trava contra duas
+  rodadas); cada requisição lê com `mode=ro` (validado no Windows: lê com o WAL aberto, escrita falha).
+- `tc web --demo`: banco fictício gerado por `token_controler/demo.py` (horários no fuso local, semente fixa), "agora"
+  congelado em 22/11/2026 11:07:42, sem ingest e sem `<meta refresh>`. É a base dos testes visuais (Playwright, só
+  desenvolvimento, `tests/visual/`).
+- Tela Hoje: sinais na tabela só de severidade média e alta, num selo só (os de baixa ficam para o detalhe da sessão);
+  "custo por tipo de token" só divide o custo `calculado` (o `registrado` aparece numa fatia "sem divisão"); "sem cache
+  custaria" = os mesmos tokens com o contexto inteiro cobrado como input. As abas de período ficam visíveis mas desligadas
+  até a T25, e `/sessao/<id>` mostra um aviso até a T26.
 
 ---
 

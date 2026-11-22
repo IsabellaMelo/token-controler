@@ -16,6 +16,7 @@ from datetime import date, datetime, timedelta
 
 from . import comportamento as _comportamento
 from . import db, diagnostico, qualidade
+from .precos import achar_preco
 
 PAUSA_MAX_S = 300  # pausas acima de 5 min não contam como tempo ativo
 DIAS_NO_PAINEL = 8
@@ -325,6 +326,111 @@ def por_hora(con: sqlite3.Connection, dia: date, projeto: str | None = None, fer
     projetos = [{"projeto": k, "custo_usd": v["custo_usd"], "sessoes": len(v["sessoes"])} for k, v in por_projeto.items()]
     projetos.sort(key=lambda x: (-x["custo_usd"], x["projeto"]))
     return {"projetos": projetos, "horas": horas, "custo_usd": total, "sem_preco": sem_preco}
+
+
+def custo_por_tipo(con: sqlite3.Connection, f: Filtro) -> dict:
+    """Custo dividido por tipo de token (input, output, gravação e leitura de cache).
+
+    Só dá para dividir o custo `calculado` (tokens x `precos.py`). O custo `registrado` pelo log vem num número só e fica
+    em `registrado_usd`, sem divisão. `sem_cache_usd` é o que as mesmas chamadas calculadas custariam se todo o contexto
+    fosse cobrado como input (sem gravação nem leitura de cache): uma conta com os tokens reais, não uma estimativa de tokens.
+    """
+    where, p = f.sql()
+    tipos = {"output": 0.0, "cache_write": 0.0, "cache_read": 0.0, "input": 0.0}
+    registrado, n_registrado, sem_cache = 0.0, 0, 0.0
+    for r in con.execute(f"""SELECT modelo, input_tokens AS i, output_tokens AS o, cache_write_5m AS w5,
+                                    cache_write_1h AS w1, cache_read AS cr, custo_usd, origem_custo
+                             FROM chamadas WHERE erro_api = 0 AND custo_usd IS NOT NULL AND {where}""", p):
+        preco = achar_preco(r["modelo"], r["i"] + r["w5"] + r["w1"] + r["cr"]) if r["origem_custo"] == "calculado" else None
+        if preco is None:
+            registrado += r["custo_usd"]
+            n_registrado += 1
+            continue
+        p_in, p_w5, p_w1, p_read, p_out = preco
+        tipos["input"] += r["i"] * p_in / 1e6
+        tipos["output"] += r["o"] * p_out / 1e6
+        tipos["cache_write"] += (r["w5"] * p_w5 + r["w1"] * p_w1) / 1e6
+        tipos["cache_read"] += r["cr"] * p_read / 1e6
+        sem_cache += ((r["i"] + r["w5"] + r["w1"] + r["cr"]) * p_in + r["o"] * p_out) / 1e6
+    return {"tipos": tipos, "calculado_usd": sum(tipos.values()), "registrado_usd": registrado,
+            "chamadas_registradas": n_registrado, "sem_cache_usd": sem_cache}
+
+
+def dia(con: sqlite3.Connection, dia_: date, momento: datetime, limites: dict, projeto: str | None = None,
+        ferramenta: str | None = None) -> dict:
+    """Tudo que a tela Hoje do `tc web` mostra para um dia local, no `momento` dado (UTC, com fuso).
+
+    `sessoes` vêm do início mais antigo para o mais novo, com o modelo principal (o de maior custo), a taxa de cache, se
+    está em andamento (atividade nos últimos `live_sessao_ativa_min`) e os sinais do diagnóstico. Os totais de duração e
+    tempo ativo são a soma das sessões (a mesma conta do `tc sessoes`).
+    """
+    f = Filtro(desde=dia_.isoformat(), ate=dia_.isoformat(), projeto=projeto, ferramenta=ferramenta)
+    where, p = f.sql()
+    r = con.execute(f"""SELECT COUNT(*) AS chamadas, SUM(erro_api) AS erros_api, SUM(input_tokens) AS inp,
+                               SUM(output_tokens) AS outp, SUM(cache_write_5m + cache_write_1h) AS cw, SUM(cache_read) AS cr,
+                               SUM(custo_usd) AS custo, SUM(custo_usd IS NULL AND erro_api = 0) AS sem_preco,
+                               SUM(turno IS NULL) AS sem_sequencia
+                        FROM chamadas WHERE {where}""", p).fetchone()
+    entrada, cw, cr = r["inp"] or 0, r["cw"] or 0, r["cr"] or 0
+    t = con.execute(f"""SELECT COUNT(*) AS n, SUM(CASE WHEN {db.ERRO_REAL} THEN 1 ELSE 0 END) AS erros,
+                               SUM(erro = 1 AND erro_categoria = 'recusado_usuario') AS recusadas,
+                               SUM(erro = 1 AND erro_categoria IS NULL) AS sem_categoria
+                        FROM tool_calls WHERE {where}""", p).fetchone()
+    prompts = con.execute(f"SELECT COUNT(*) FROM eventos WHERE tipo = 'prompt' AND {where}", p).fetchone()[0]
+    ferramentas = [x[0] for x in con.execute(f"SELECT DISTINCT ferramenta FROM chamadas WHERE {where}", p)]
+    modelos = [dict(x) for x in con.execute(f"""SELECT COALESCE(modelo, '?') AS modelo, SUM(custo_usd) AS custo_usd,
+                    COUNT(*) AS chamadas, SUM(custo_usd IS NULL) AS sem_preco
+                    FROM chamadas WHERE erro_api = 0 AND {where} GROUP BY 1
+                    ORDER BY COALESCE(SUM(custo_usd), -1) DESC, COUNT(*) DESC""", p)]
+
+    lista = sessoes(con, f, 1000)[::-1]
+    ids = [s["sessao"] for s in lista]
+    por_modelo: dict[str, list] = defaultdict(list)
+    cache_sessao: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+    for lote in diagnostico._em_lotes(ids):
+        marcas = ",".join("?" * len(lote))
+        for x in con.execute(f"""SELECT sessao_id, COALESCE(modelo, '?') AS modelo, COUNT(*) AS n,
+                                        COALESCE(SUM(custo_usd), 0) AS custo, SUM(cache_read) AS cr,
+                                        SUM(input_tokens + cache_write_5m + cache_write_1h + cache_read) AS total
+                                 FROM chamadas WHERE erro_api = 0 AND sessao_id IN ({marcas})
+                                 GROUP BY sessao_id, modelo""", lote):
+            por_modelo[x["sessao_id"]].append((x["custo"], x["n"], x["modelo"]))
+            cache_sessao[x["sessao_id"]][0] += x["cr"] or 0
+            cache_sessao[x["sessao_id"]][1] += x["total"] or 0
+    ultimos = {}
+    for lote in diagnostico._em_lotes(ids):
+        marcas = ",".join("?" * len(lote))
+        ultimos.update(con.execute(f"""SELECT sessao_id, MAX(ts) FROM eventos WHERE tipo = 'atividade'
+                                       AND sessao_id IN ({marcas}) GROUP BY sessao_id""", lote).fetchall())
+    sinais: dict[str, list[dict]] = defaultdict(list)
+    for rec in diagnostico.diagnosticar(con, limites, ids):
+        sinais[rec["sessao"]].append({"sinal": rec["sinal"], "severidade": rec["severidade"], "dados": rec["dados"]})
+    janela = timedelta(minutes=limites["live_sessao_ativa_min"])
+    for s in lista:
+        modelos_s = sorted(por_modelo.get(s["sessao"], []), reverse=True)
+        s["modelo"] = modelos_s[0][2] if modelos_s else None
+        lido, total = cache_sessao.get(s["sessao"], (0, 0))
+        s["cache_taxa"] = lido / total if total else None
+        ultimo = diagnostico._t(ultimos[s["sessao"]]) if ultimos.get(s["sessao"]) else None
+        s["ultimo"] = ultimos.get(s["sessao"])
+        s["em_andamento"] = bool(ultimo and timedelta(0) <= momento - ultimo <= janela)
+        s["sinais"] = sinais.get(s["sessao"], [])
+
+    arquivos = con.execute("SELECT MAX(processado_em), SUM(linhas_ruins) FROM arquivos").fetchone()
+    return {
+        "dia": dia_.isoformat(), "momento": momento.isoformat(), "modo": db.ler_modo(con),
+        "ferramentas": ferramentas, "projeto": projeto,
+        "custo_usd": r["custo"], "sem_preco": r["sem_preco"] or 0,
+        "chamadas": r["chamadas"], "erros_api": r["erros_api"] or 0, "prompts": prompts,
+        "tokens": {"input": entrada, "output": r["outp"] or 0, "cache_write": cw, "cache_read": cr},
+        "cache_taxa": cr / (entrada + cw + cr) if entrada + cw + cr else None,
+        "tools": {"chamadas": t["n"], "erros": t["erros"] or 0, "recusadas": t["recusadas"] or 0},
+        "sem_categoria": t["sem_categoria"] or 0, "sem_sequencia": r["sem_sequencia"] or 0,
+        "ativo_s": sum(s["ativo_s"] for s in lista), "duracao_s": sum(s["duracao_s"] for s in lista),
+        "horas": por_hora(con, dia_, projeto, ferramenta), "custo_por_tipo": custo_por_tipo(con, f),
+        "modelos": modelos, "lista_tools": tools(con, f), "sessoes": lista,
+        "ultimo_ingest": arquivos[0], "linhas_ilegiveis": arquivos[1] or 0,
+    }
 
 
 # ---------- sequência da sessão (T22; telas da T27 e T28) ----------

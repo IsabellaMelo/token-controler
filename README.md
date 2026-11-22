@@ -48,6 +48,7 @@ tc comportamento               # categoria dos turnos, one-shot e custo por cate
 tc qualidade                   # confiança dos dados: linhas ilegíveis, sem preço, sem tokens
 tc live                        # tela AGORA: sessões ativas, alertas, custo de hoje por projeto e por hora
 tc painel                      # painel por período que se atualiza sozinho (teclas 1-5 mudam o período, q sai)
+tc web                         # painel local no navegador (só 127.0.0.1): tela Hoje, atualizada a cada 5 s
 tc ingest --tudo               # reprocessa tudo (após mudar preços)
 tc ingest --modo calculate     # troca o modo de custo (ver "Modos de custo")
 ```
@@ -151,6 +152,29 @@ a variável `NO_COLOR` definida, o painel sai sem cor.
 
 **Como aba no VS Code:** `Ctrl+Shift+P` → **Terminal: Create Terminal in Editor Area** → `tc live` (ou `tc painel`).
 
+### No navegador (`tc web`)
+
+Painel local em HTML, gerado pelo Python (sem JavaScript, sem nada baixado da internet), ligado **só em `127.0.0.1`**.
+Por enquanto tem a tela **Hoje**: custo (com o acumulado do dia), tokens, taxa de cache, chamadas, tool calls e erros,
+tempo ativo, gasto por hora, custo por tipo de token, por projeto, por modelo, por tool e as sessões do dia com os sinais
+do diagnóstico (os de severidade média e alta). As abas de período e o detalhe da sessão chegam nas próximas etapas.
+
+```bash
+tc web                 # http://127.0.0.1:8765/ ; lê os logs novos a cada 5 s e a página recarrega sozinha
+tc web --porta 9000    # outra porta (ou "web_porta" no config.json); se estiver ocupada, usa a próxima livre
+tc web --demo          # dados FICTÍCIOS e horário congelado, sem ingest nem recarregar: para ver a tela sem dados reais
+```
+
+- **No VS Code:** `Ctrl+Shift+P` → **Simple Browser: Show** → `http://127.0.0.1:8765/` (com o `tc web` rodando num terminal).
+- **No Edge, como app (janela própria, sem abas):** `msedge --app=http://127.0.0.1:8765/`
+  (no PowerShell: `Start-Process msedge "--app=http://127.0.0.1:8765/"`).
+
+Segurança: só `GET`; o cabeçalho `Host` precisa ser `127.0.0.1:<porta>` ou `localhost:<porta>`; o servidor lê o banco
+numa conexão só leitura; a página proíbe scripts e recursos externos (Content-Security-Policy); nada é registrado em log.
+O banco passa a usar WAL (aparecem `tracker.db-wal` e `tracker.db-shm` ao lado dele), para o ingest gravar sem travar a
+leitura. Se a tela avisar "versão antiga do tc", feche os `tc live`/`tc painel` abertos antes da atualização e rode
+`tc ingest --tudo`. Testes visuais (Playwright, só desenvolvimento): `tests/visual/README.md`.
+
 ## Configuração
 
 | O quê | Onde |
@@ -159,6 +183,7 @@ a variável `NO_COLOR` definida, o painel sai sem cor.
 | Logs do Claude Code | `~/.claude/projects` (mude com `CLAUDE_CONFIG_DIR`) |
 | Preços | `token_controler/precos.py` |
 | Nome dos projetos | `~/.token-controler/projetos.json` (opcional) |
+| Porta do `tc web` | `"web_porta"` no `config.json` ao lado do banco (padrão 8765) |
 
 O projeto vem do nome da pasta onde a sessão rodou. Para agrupar ou renomear, crie
 `~/.token-controler/projetos.json` com prefixo de caminho → nome:

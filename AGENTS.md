@@ -71,6 +71,11 @@ token_controler/
   agora.py            # dados e texto simples da tela do `tc live` (só biblioteca padrão)
   detalhe.py          # dados e árvore neutra do `tc sessao` (só biblioteca padrão; reusa as regras de diagnostico.py)
   regras_erros.py     # categoria e exit code de um erro de tool (função pura; a mensagem nunca é gravada)
+  demo.py             # banco de demonstração FICTÍCIO e determinístico (`tc web --demo`, testes visuais)
+  web/
+    servidor.py       # `tc web`: http.server só em 127.0.0.1, só GET, Host checado, SQLite mode=ro, thread de ingest
+    telas.py          # monta o HTML a partir de consultas.py; todo valor passa por html.escape
+    modelos/          # base.html, hoje.html, fragmentos.html e estilo.css (sem JavaScript, sem recurso externo)
   db.py               # schema SQLite e conexão
   precos.py           # tabela de preços (USD por milhão de tokens)
   fontes/

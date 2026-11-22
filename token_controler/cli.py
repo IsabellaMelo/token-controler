@@ -370,6 +370,16 @@ def cmd_painel(con, args) -> None:
         print()
 
 
+def cmd_web(con, args) -> None:
+    """Painel local no navegador (T24). O servidor abre as próprias conexões (só leitura); esta aqui é fechada antes."""
+    con.close()
+    from .web import servidor  # só biblioteca padrão; carregado só aqui
+    limites, avisos = diagnostico.carregar_limites(diagnostico.caminho_config(args.db))
+    for aviso in avisos:
+        print(aviso, file=sys.stderr)
+    servidor.executar(args.db, args.porta, args.demo, limites, carregar_apelidos())
+
+
 def cmd_live(con, args) -> None:
     """Tela "agora" (T20): sessões ativas, alertas, custo de hoje por projeto e por hora. Ctrl+C sai."""
     limites, avisos = diagnostico.carregar_limites(diagnostico.caminho_config(args.db))
@@ -469,6 +479,12 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--ferramenta")
     p.add_argument("--simples", action="store_true", help="texto puro, sem o rich")
     p.set_defaults(func=cmd_live)
+
+    p = sub.add_parser("web", help="painel local no navegador (só em 127.0.0.1): tela Hoje, atualizada a cada 5 s")
+    p.add_argument("--porta", type=int, help="porta (padrão: web_porta do config.json ou 8765; se ocupada, tenta as próximas)")
+    p.add_argument("--demo", action="store_true",
+                   help="dados fictícios e horário congelado, sem ingest nem recarregar (para olhar a tela e para os testes)")
+    p.set_defaults(func=cmd_web)
 
     p = com_filtros(sub.add_parser("painel", help="painel de período que se atualiza sozinho (teclas 1-5 mudam o período, q sai)"))
     p.add_argument("--intervalo", type=int, default=15, help="segundos entre atualizações")

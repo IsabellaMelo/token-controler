@@ -134,6 +134,10 @@ Design em §8.1. Python + HTML + CSS gerados no servidor, **sem JavaScript e sem
   Aceite: testes sem rede externa (servidor em porta livre, `urllib` só para `127.0.0.1`), `html.escape` em todo texto do banco, só `GET`,
   checagem do `Host`, banco aberto só leitura (uma escrita pela conexão do servidor falha), porta ocupada → próxima, sem `<script>`
   no HTML, `pytest` passando e README atualizado.
+  *Implementado em 22/11/2026, aguardando a aprovação visual:* `token_controler/web/` (servidor, telas, modelos), `consultas.dia`
+  e `consultas.custo_por_tipo`, `tc web --demo` (`token_controler/demo.py`, `scripts/gerar_demo.py`), testes em
+  `tests/test_web.py` e revisão visual com Playwright em `tests/visual/` (job `visual` no CI). Os prints de referência só
+  entram depois da aprovação. Decisões no design §8.1.
 - [ ] **T25 · Abas de período e filtros.** Estado na URL: `/?periodo=7d&projeto=x` (períodos como no `tc painel`: hoje, 7d, 30d, mês, tudo).
   Aceite: a URL reproduz a tela; filtro inválido não quebra; links entre abas preservam o projeto.
 - [ ] **T26 · Detalhe da sessão** (`/sessao/<id>`, aceita o prefixo do ID). KPIs da sessão; **chamadas por minuto** (linha em SVG) com marcas

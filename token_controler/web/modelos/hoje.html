@@ -1,0 +1,107 @@
+<header class="topo">
+<div class="marca">
+<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="9" fill="#161A21" stroke="#2C3340"></rect><rect x="8" y="18" width="4" height="9" rx="1.5" fill="#3567B8"></rect><rect x="15" y="12" width="4" height="15" rx="1.5" fill="#6AA6FF"></rect><rect x="22" y="7" width="4" height="20" rx="1.5" fill="#F5A04A"></rect></svg>
+<div class="marca-nome">
+<span class="marca-titulo">token-controler</span>
+<span class="marca-sub">tc web · painel local</span>
+</div>
+</div>
+<nav class="abas" aria-label="Período">
+$abas
+</nav>
+<div class="status">
+<span class="$classe_ponto"></span>
+<span>$status</span>
+</div>
+</header>
+
+<div class="filtros">
+$chips
+<span class="espaco"></span>
+<span class="filtros-info">Modo de custo: <strong>$modo</strong> · $data_extenso</span>
+</div>
+$avisos
+<section class="kpis" aria-label="Indicadores do dia">
+<div class="kpi">
+<span class="kpi-rotulo">Custo hoje</span>
+<span class="kpi-valor kpi-custo" data-kpi="custo">$custo</span>
+$sparkline
+<span class="kpi-nota">$custo_nota</span>
+</div>
+<div class="kpi">
+<span class="kpi-rotulo">Tokens</span>
+<span class="kpi-valor" data-kpi="tokens">$tokens</span>
+$faixa_tokens
+<span class="kpi-nota">$tokens_nota</span>
+</div>
+<div class="kpi">
+<span class="kpi-rotulo">Taxa de cache</span>
+<span class="kpi-valor" data-kpi="cache">$cache</span>
+$trilho_cache
+<span class="kpi-nota">$cache_nota</span>
+</div>
+<div class="kpi">
+<span class="kpi-rotulo">Chamadas</span>
+<span class="kpi-valor" data-kpi="chamadas">$chamadas</span>
+<span class="kpi-nota">$chamadas_nota</span>
+<span class="kpi-nota">$sessoes_nota</span>
+</div>
+<div class="kpi">
+<span class="kpi-rotulo">Tool calls</span>
+<span class="kpi-valor" data-kpi="tools">$tools</span>
+<span class="$classe_tools_erro">$tools_erro</span>
+<span class="kpi-nota">$tools_nota</span>
+</div>
+<div class="kpi">
+<span class="kpi-rotulo">Tempo ativo</span>
+<span class="kpi-valor" data-kpi="ativo">$ativo</span>
+$trilho_ativo
+<span class="kpi-nota">$ativo_nota</span>
+</div>
+</section>
+
+<div class="linha-blocos">
+<section class="bloco bloco-largo" aria-labelledby="t-hora">
+<div class="bloco-cab">
+<h2 id="t-hora">Gasto por hora</h2>
+<span class="nota">hora atual em destaque</span>
+</div>
+$horas
+</section>
+
+<section class="bloco bloco-medio" aria-labelledby="t-tipo">
+<h2 id="t-tipo">Custo por tipo de token</h2>
+$rosca
+</section>
+</div>
+
+<div class="linha-blocos">
+<section class="bloco bloco-medio bloco-lista" aria-labelledby="t-proj">
+<h2 id="t-proj">Por projeto</h2>
+$projetos
+</section>
+<section class="bloco bloco-medio bloco-lista" aria-labelledby="t-mod">
+<h2 id="t-mod">Por modelo</h2>
+$modelos
+</section>
+<section class="bloco bloco-medio bloco-tools" aria-labelledby="t-tools">
+<div class="bloco-cab">
+<h2 id="t-tools">Tools</h2>
+<span class="legenda-tools"><span class="quadrado cor-ok"></span>ok <span class="quadrado cor-erro"></span>erro</span>
+</div>
+$lista_tools
+</section>
+</div>
+
+<section class="bloco bloco-lista" aria-labelledby="t-sess">
+<div class="bloco-cab">
+<h2 id="t-sess">Sessões de hoje</h2>
+<span class="nota">$sessoes_dica</span>
+</div>
+$tabela
+</section>
+
+<footer class="rodape">
+<span>Custos em equivalente de API (na assinatura Pro/Max não é o valor pago). Modelos sem preço aparecem com *.</span>
+<span>$fonte</span>
+</footer>
