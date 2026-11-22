@@ -8,7 +8,7 @@ Uma ferramenta **local, gratuita e simples** para ver quanto custam e como se co
 
 A motivação é ganhar visibilidade sobre o que acontece por trás: não só *quanto* se gastou, mas *por que* uma sessão ficou cara ou lenta.
 
-É uma versão simplificada inspirada no CodeBurn, no ccusage e no AgentTrace, adaptada a um notebook corporativo: Python, sem Node e sem rede. A única dependência externa é o `rich`, usada só no painel do `tc live`; os demais comandos rodam só com a biblioteca padrão.
+É uma versão simplificada inspirada no CodeBurn, no ccusage e no AgentTrace, adaptada a um notebook corporativo: Python, sem Node e sem rede. A única dependência externa é o `rich`, usada só nas telas visuais (`tc painel`, `tc live` e `tc sessao`); os demais comandos rodam só com a biblioteca padrão.
 
 ### Fora do escopo (por enquanto)
 - Dashboard web, Power BI, app desktop, extensão do VS Code.
@@ -164,7 +164,8 @@ CLI `tc` (comandos em português):
 | `tc resumo --por projeto\|dia\|sessao\|modelo\|ferramenta` | contabilidade agrupada | ✅ |
 | `tc sessoes` | duração, tempo ativo, prompts, chamadas, custo | ✅ |
 | `tc tools` | uso e taxa de erro por tool | ✅ |
-| `tc live [--periodo] [--simples]` | painel visual (rich) atualizado sozinho: resumo, abas de período e uma grade de caixas; `--simples` mantém a tabela antiga | ✅ |
+| `tc live [--projeto] [--simples]` | tela AGORA (rich), atualizada sozinha: sessões ativas (últimos 15 min) com branch, custo, custo/hora e erros; alertas com o `tc sessao <id>`; custo de hoje por projeto e por hora; blocos sem dados somem (T20) | ✅ |
+| `tc painel [--periodo] [--simples]` | painel por período (rich): resumo, abas de período e uma grade de caixas; `--simples` mantém a tabela antiga (era o `tc live` até a T20) | ✅ |
 | `tc diagnostico [--sessao] [--limite] [--json]` | sinais e recomendações, cada uma com a evidência | ✅ |
 | `tc sessao [id] [--comandos] [--json]` | detalhe de uma sessão em árvore (`rich.Tree`): prompts, tools, subagentes, pausas e ⚠ com motivo e custo (T19) | ✅ |
 | `tc limpar-nomes` | apaga os nomes de arquivo gravados em `tool_calls.alvo_nome` (T19, em teste) | ✅ |
@@ -173,7 +174,7 @@ CLI `tc` (comandos em português):
 | `tc qualidade [--ferramenta] [--json]` | confiança dos dados (linhas ruins, sem preço, sem tokens, origem do custo) | ✅ (nível de detalhe entra com a T09) |
 | `--json` em todos | análise no pandas | Fase 1.5 |
 
-**Aba no VS Code:** `Ctrl+Shift+P` → *Terminal: Create Terminal in Editor Area* → `tc live`.
+**Aba no VS Code:** `Ctrl+Shift+P` → *Terminal: Create Terminal in Editor Area* → `tc live` ou `tc painel`.
 
 **Configuração** (prioridade, como no ccusage): argumentos do CLI > `~/.token-controler/config.json` > padrões. Apelidos de projeto em `projetos.json`.
 

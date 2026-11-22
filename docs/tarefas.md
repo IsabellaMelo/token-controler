@@ -111,6 +111,17 @@ Os caminhos citados abaixo são pontos de partida; se não existirem, procure no
   Releitura só conta com `releitura_min_sobreposicao` (25%) ou mais do trecho lido agora (3 linhas repetidas de 80 eram ruído);
   base de um `Read` sem `limit` = 2000 linhas, o padrão do Read.
 
+- [x] **T20 · Separar o `tc live` do `tc painel`.** O painel (abas de período, grade de caixas) passa a se chamar `tc painel`, com as mesmas
+  opções e o mesmo comportamento. O `tc live` vira a tela AGORA: uma linha por sessão ativa (últimos 15 min) com projeto, branch git (se o
+  log tiver; senão a hora de início), última atividade, custo, custo por hora e erros; alertas, cada um com o `tc sessao <id>`; custo de
+  hoje por projeto; mini-gráfico de custo por hora do dia. Blocos sem dados não aparecem. Reaproveita as regras do `tc diagnostico`.
+  Aceite: testes com fixture de 3 sessões simultâneas (mais uma parada, para provar a janela de 15 min), `pytest` passando e README atualizado.
+  Feito: `agora.py` (dados e texto simples, só biblioteca padrão), `painel.renderizar_agora`/`executar_agora` (rich), `cli.cmd_live` novo e
+  `cmd_painel` (o antigo). Alertas = `detalhe.analisar` (as regras do `tc diagnostico`, o mesmo que o `tc sessao` mostra) + `sessao_cara` e
+  `pressao_contexto`; só eventos da última hora (`live_alerta_janela_min`). Custo/hora = custo ÷ tempo ativo (`-` com menos de 1 min).
+  O branch vem do `gitBranch` do log, lido na hora e **nunca gravado** (nenhuma exceção nova na regra 1). Na regra 3 do `AGENTS.md`
+  só os nomes dos comandos foram atualizados; o `rich` continua só no `painel.py`.
+
 ## Fase 5 — Calibração
 - [ ] **T17 · Ajustar limites** do diagnóstico depois de 2 a 3 semanas de uso real.
   Referência: **agenttrace**, baselines locais e checagem de regressão.

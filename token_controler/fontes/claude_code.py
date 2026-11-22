@@ -120,6 +120,37 @@ def comandos_do_log(arquivo: Path, ids: set[str]) -> dict[str, str]:
     return achados
 
 
+BRANCH_MAX = 40            # tamanho máximo do branch mostrado
+BYTES_FINAIS = 256 * 1024  # `branch_do_log` só olha o fim do log
+
+
+def branch_do_log(arquivo: Path) -> str | None:
+    """Branch git da sessão (`gitBranch` da última linha do log que o traz), lido SÓ EM MEMÓRIA (T20, `tc live`).
+
+    É mostrado na tela e nunca gravado no banco. Log que não existe, ilegível ou sem o campo devolve None.
+    """
+    try:
+        with arquivo.open("rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - BYTES_FINAIS))
+            final = f.read()
+    except OSError:
+        return None
+    for linha in reversed(final.decode("utf-8", errors="replace").splitlines()):
+        if '"gitBranch"' not in linha:
+            continue
+        try:
+            dados = json.loads(linha)
+        except json.JSONDecodeError:         # a 1ª linha do trecho pode vir cortada
+            continue
+        branch = dados.get("gitBranch") if isinstance(dados, dict) else None
+        if isinstance(branch, str):
+            branch = "".join(c for c in branch if c.isprintable()).strip()
+            if branch:
+                return branch if len(branch) <= BRANCH_MAX else branch[:BRANCH_MAX - 1] + "…"
+    return None
+
+
 def processar_arquivo(con: sqlite3.Connection, arquivo: Path, apelidos: dict[str, str],
                       gravar_nomes: bool | None = None, gravar_trechos: bool | None = None) -> dict:
     """Lê um log e grava no banco. `gravar_nomes` e `gravar_trechos` (T19): None = chaves do config.json."""

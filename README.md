@@ -9,8 +9,8 @@ rótulo `debug` (veja "Categoria e one-shot").
 
 ## Instalação
 
-Requer Python 3.9+. A única dependência é o [rich](https://github.com/Textualize/rich), usado só no painel
-do `tc live` (o `pip install -e .` já o instala). Todos os outros comandos rodam só com a biblioteca padrão.
+Requer Python 3.9+. A única dependência é o [rich](https://github.com/Textualize/rich), usado só nas telas visuais
+(`tc painel`, `tc live` e `tc sessao`; o `pip install -e .` já o instala). Todos os outros comandos rodam só com a biblioteca padrão.
 
 ```bash
 cd token-controler
@@ -45,12 +45,13 @@ tc limpar-nomes                # apaga os nomes de arquivo gravados no banco (ve
 tc limpar-trechos              # apaga os trechos de leitura (linha inicial e quantidade) gravados no banco
 tc comportamento               # categoria dos turnos, one-shot e custo por categoria
 tc qualidade                   # confiança dos dados: linhas ilegíveis, sem preço, sem tokens
-tc live                        # painel visual que se atualiza sozinho (teclas 1-5 mudam o período, q sai)
+tc live                        # tela AGORA: sessões ativas, alertas, custo de hoje por projeto e por hora
+tc painel                      # painel por período que se atualiza sozinho (teclas 1-5 mudam o período, q sai)
 tc ingest --tudo               # reprocessa tudo (após mudar preços)
 tc ingest --modo calculate     # troca o modo de custo (ver "Modos de custo")
 ```
 
-Filtros em `resumo`, `sessoes`, `tools` e `live`: `--desde`, `--ate`, `--hoje`, `--projeto`, `--ferramenta`.
+Filtros em `resumo`, `sessoes`, `tools` e `painel` (o `live` só tem `--projeto` e `--ferramenta`): `--desde`, `--ate`, `--hoje`, `--projeto`, `--ferramenta`.
 
 ### Saída JSON
 
@@ -76,7 +77,54 @@ tc sessoes --json | python -m json.tool
 - No PowerShell 5.1, canalizar ou redirecionar a saída pode acrescentar BOM ou mudar a codificação, e o JSON deixa de
   abrir em `json.load`. Dentro do Python, prefira `subprocess`, ou leia o arquivo com `encoding="utf-8-sig"`.
 
-### Painel (`tc live`)
+### Agora (`tc live`)
+
+Uma tela focada no **que está acontecendo agora**, para deixar aberta ao lado do trabalho. Ela relê os logs a cada
+atualização e **esconde os blocos que não têm dados**:
+
+1. **Sessões ativas** (atividade nos últimos 15 min), uma linha por sessão: projeto, **branch git** (ou "desde HH:MM" se o
+   log não trouxe), última atividade ("há 2min"), custo da sessão, **custo por hora** e erros (de tool, mais "+N API" se
+   houve erro de API).
+2. **Alertas**, do mais grave ao menos grave, cada um com o comando para abrir a sessão (`tc sessao <id>`). São os mesmos
+   problemas que o `tc sessao` mostra (falha repetida, releitura, pausa longa com cache regravado, cache baixo, re-criação de
+   cache, regras e limites do `tc diagnostico`) mais **sessão cara** e **pressão de contexto** do diagnóstico.
+3. **Hoje por projeto**: custo do dia (horário local) por projeto, inclusive de sessões que já pararam.
+4. **Custo por hora do dia**: um mini-gráfico de 24 colunas, uma por hora local, com o pico e a hora atual.
+
+```
+token-controler · agora · 10:00:00 · hoje $2.14
+
+Sessões ativas (últimos 15 min)
+  projeto  branch / início    última atividade  custo  $/h    erros     sessão
+  alfa     feature/relatorio  há 1min00s        $0.15  $2.16  3         sess-aaa
+  beta     desde 09:30        há 6min00s        $0.02  -      0 +1 API  sess-bbb
+
+Alertas
+  ⚠ gama · Cache baixo: cache 25% em 18 chamadas (mínimo 80%) · $1.80  →  tc sessao sess-ccc
+  ⚠ alfa · Falha repetida: Bash falhou 3 vezes seguidas · $0.02  →  tc sessao sess-aaa
+```
+
+```bash
+tc live                    # atualiza a cada 10 s; r atualiza agora; q, Esc ou Ctrl+C saem
+tc live --intervalo 5
+tc live --projeto rpps     # só um projeto (--ferramenta também)
+tc live --simples          # texto puro, sem o rich (também é o que aparece se o rich não estiver instalado)
+```
+
+Como ler:
+
+- **Custo por hora** = custo da sessão ÷ tempo ativo (as pausas acima de `pausa_s` não contam). Com menos de 1 min ativo
+  aparece `-`, para não extrapolar de uma chamada só.
+- **Alertas de evento** (uma pausa, uma falha) só aparecem se aconteceram na **última hora**
+  (`live_alerta_janela_min`), para um alerta antigo não ficar grudado numa sessão longa; o estado da sessão (cache baixo,
+  sessão cara) vale sempre. Só contam sessões ativas.
+- **Branch**: lido do campo `gitBranch` do log **na hora, em memória**, e só mostrado: nunca vai para o banco. Sem o
+  log (apagado) ou sem o campo, aparece a hora de início.
+- Os limites ficam em `config.json`, na chave `diagnostico`: `live_sessao_ativa_min` (15) e `live_alerta_janela_min` (60).
+
+A visão por período (dia, projeto, modelo, tools...) é o `tc painel`.
+
+### Painel por período (`tc painel`)
 
 Uma tela só, para acompanhar o dia a dia: um **resumo** no topo (custo, chamadas, sessões, cache, tokens) e uma grade
 de caixas: **Por dia**, **Por projeto**, **Por atividade** (com one-shot), **Por modelo**, **Diagnóstico** (os sinais
@@ -90,17 +138,17 @@ Ele relê os logs a cada atualização e usa 3, 2 ou 1 coluna conforme a largura
 | `q`, `Esc` ou `Ctrl+C` | sai e devolve o terminal como estava |
 
 ```bash
-tc live                          # começa em "Hoje", atualiza a cada 15 s
-tc live --periodo 7d --intervalo 5
-tc live --projeto rpps           # só um projeto (--ferramenta também)
-tc live --simples                # painel antigo, só uma tabela de hoje, sem o rich
+tc painel                        # começa em "Hoje", atualiza a cada 15 s
+tc painel --periodo 7d --intervalo 5
+tc painel --projeto rpps         # só um projeto (--ferramenta também)
+tc painel --simples              # painel antigo, só uma tabela de hoje, sem o rich
 ```
 
-No painel, `--desde` e `--ate` não valem: use `--periodo` ou as teclas. Se o `rich` não estiver instalado, o `tc live`
+No painel, `--desde` e `--ate` não valem: use `--periodo` ou as teclas. Se o `rich` não estiver instalado, o `tc painel`
 avisa e mostra o painel simples. As cores dependem do terminal (o do VS Code e o Windows Terminal funcionam); com
 a variável `NO_COLOR` definida, o painel sai sem cor.
 
-**Como aba no VS Code:** `Ctrl+Shift+P` → **Terminal: Create Terminal in Editor Area** → `tc live`.
+**Como aba no VS Code:** `Ctrl+Shift+P` → **Terminal: Create Terminal in Editor Area** → `tc live` (ou `tc painel`).
 
 ## Configuração
 

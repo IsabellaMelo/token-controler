@@ -283,32 +283,32 @@ def test_laco_le_os_logs_a_cada_quadro(ambiente, monkeypatch):
 
 # ---------- CLI ----------
 
-def test_cli_live_padrao_usa_o_painel_novo(tmp_path, monkeypatch, capsys):
+def test_cli_painel_padrao_usa_o_painel_novo(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(FIXTURES.parent))
     teclas(monkeypatch, ["q"])
-    cli.main(["--db", str(tmp_path / "c.db"), "live", "--periodo", "tudo", "--intervalo", "1"])
+    cli.main(["--db", str(tmp_path / "c.db"), "painel", "--periodo", "tudo", "--intervalo", "1"])
     saida = capsys.readouterr().out
     assert "Por projeto" in saida and "[ Tudo ]" in saida and "rpps" in saida
 
 
-def test_cli_live_sai_limpo_com_ctrl_c(tmp_path, monkeypatch, capsys):
+def test_cli_painel_sai_limpo_com_ctrl_c(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(FIXTURES.parent))
 
     def interrompe(timeout):
         raise KeyboardInterrupt
 
     monkeypatch.setattr(painel, "esperar_tecla", interrompe)
-    cli.main(["--db", str(tmp_path / "c.db"), "live"])                  # não pode levantar
+    cli.main(["--db", str(tmp_path / "c.db"), "painel"])                  # não pode levantar
     assert "Por projeto" in capsys.readouterr().out
 
 
-def test_cli_live_sem_rich_cai_no_painel_simples(tmp_path, monkeypatch, capsys):
+def test_cli_painel_sem_rich_cai_no_painel_simples(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(FIXTURES.parent))
     import token_controler
     monkeypatch.delattr(token_controler, "painel")                      # o import em cache no pacote...
     monkeypatch.setitem(sys.modules, "token_controler.painel", None)    # ...e no sys.modules: agora falha como sem rich
     monkeypatch.setattr(cli.time, "sleep", lambda s: (_ for _ in ()).throw(KeyboardInterrupt))
-    cli.main(["--db", str(tmp_path / "c.db"), "live"])
+    cli.main(["--db", str(tmp_path / "c.db"), "painel"])
     capturado = capsys.readouterr()
     assert "rich não está instalado" in capturado.err
     assert "token-controler · hoje · atualizado" in capturado.out        # o painel antigo

@@ -1,4 +1,4 @@
-"""Painel do `tc live` e árvore do `tc sessao`, desenhados com rich (única dependência de runtime, usada só aqui).
+"""Painel do `tc painel`, tela do `tc live` e árvore do `tc sessao`, desenhados com rich (única dependência de runtime, usada só aqui).
 
 Duas camadas: `coletar` só consulta o banco e devolve números; `renderizar` transforma isso em rich.
 O painel mostra apenas números e metadados já gravados (nenhum texto de conversa). Inspirado no painel
@@ -20,7 +20,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
-from . import comportamento, db, diagnostico, qualidade
+from . import agora, comportamento, db, diagnostico, qualidade
 from .fontes import claude_code
 from .formato import fmt_tokens, fmt_usd
 
@@ -443,3 +443,115 @@ def renderizar_sessao(visao) -> Group:
 
 def imprimir_sessao(visao, console: Console | None = None) -> None:
     (console or Console()).print(renderizar_sessao(visao))
+
+
+# ---------- tela "agora" do `tc live` (T20) ----------
+
+def _bloco(titulo: str, cor: str, conteudo) -> Panel:
+    return Panel(conteudo, title=titulo, title_align="left", border_style=cor, padding=(0, 1))
+
+
+def _bloco_sessoes(d: dict) -> Panel:
+    t = _grade([("projeto", ROTULO), ("branch / início", {"width": 18, "justify": "left"}), ("última", {"width": 10}),
+                ("custo", {"width": 8}), ("$/h", {"width": 8}), ("erros", {"width": 9}), ("sessão", {"width": 8, "justify": "left"})])
+    for s in d["sessoes"]:
+        ocioso = s["atras_s"] > 300
+        _linha(t, Text(s["projeto"], style="bold"),
+               Text(agora.coluna_branch(s), style="cyan" if s["branch"] else "dim", no_wrap=True, overflow="ellipsis"),
+               Text(agora.atras(s["atras_s"]), style="dim" if ocioso else "green"),
+               _usd(s["custo_usd"], "*" if s["sem_preco"] else ""), _usd(s["custo_hora_usd"]),
+               Text(agora.erros(s), style="red" if s["erros_tool"] or s["erros_api"] else "dim"), Text(s["sessao"][:8], style="dim"))
+    return _bloco(f"Sessões ativas (últimos {d['ativa_min']} min)", "#5fd787", t)
+
+
+def _bloco_alertas(d: dict) -> Panel:
+    linhas = []
+    for a in d["alertas"]:
+        simbolo, estilo = SEVERIDADE[a["severidade"]]
+        l1 = Text(overflow="fold")
+        l1.append(f"{simbolo} ", style=estilo)
+        l1.append(a["projeto"], style="bold")
+        l1.append(f" · {a['titulo']}: ", style=estilo if a["severidade"] != "baixa" else "default")
+        l1.append(a["motivo"])
+        if a["custo_usd"]:
+            l1.append(f" · {fmt_usd(a['custo_usd'])}", style="yellow")
+        l2 = Text("    → ", style="dim")
+        l2.append(a["comando"], style="cyan")
+        linhas += [l1, l2]
+    if d["alertas_ocultos"]:
+        linhas.append(Text(f"+ {d['alertas_ocultos']} alerta(s): abra `tc sessao <id>` das sessões acima", style="dim"))
+    return _bloco(f"Alertas ({len(d['alertas']) + d['alertas_ocultos']})", "#ff6b6b", Group(*linhas))
+
+
+def _bloco_projetos(d: dict) -> Panel:
+    t = _grade([("", {**BARRA, "width": 8}), ("projeto", ROTULO), ("custo", {"width": 8}), ("sessões", {"width": 7})])
+    maximo = max(p["custo_usd"] for p in d["projetos"])
+    for p in d["projetos"][:8]:
+        _linha(t, barra(p["custo_usd"], maximo, 8), p["projeto"], _usd(p["custo_usd"]), str(p["sessoes"]))
+    return _bloco(f"Hoje por projeto · {fmt_usd(d['custo_hoje_usd'])}", "#5fafff", t)
+
+
+def _bloco_horas(d: dict) -> Panel:
+    maior = max(d["horas"])
+    colunas = Text(no_wrap=True)
+    for h, (v, c) in enumerate(zip(d["horas"], agora.mini_grafico(d["horas"]))):
+        nivel = agora.BLOCOS.find(c)
+        estilo = GRADIENTE[min(len(GRADIENTE) - 1, max(nivel, 0) * len(GRADIENTE) // len(agora.BLOCOS))] if v > 0 else "dim"
+        colunas.append(c, style=("bold underline " if h == d["hora_atual"] else "") + estilo)
+    pico = d["hora_de_pico"]
+    return _bloco("Custo por hora do dia", "#ffaf5f", Group(
+        colunas, Text(agora.eixo_do_grafico(), style="dim", no_wrap=True),
+        Text(f"pico às {pico}h: {fmt_usd(d['horas'][pico])} · agora: {d['hora_atual']}h", style="dim", no_wrap=True)))
+
+
+def renderizar_agora(d: dict, largura: int, hora: datetime | None = None, intervalo: int | None = None) -> Group:
+    """Tela "agora" para `largura` colunas. Blocos sem dados somem; sem nada hoje, só o cabeçalho e um aviso."""
+    topo = Text()
+    topo.append("agora", style="bold #ffaf5f")
+    topo.append("   hoje ")
+    topo.append(fmt_usd(d["custo_hoje_usd"]), style="bold yellow")
+    topo.append(f"   {len(d['sessoes'])} sessão(ões) ativa(s)", style="bold" if d["sessoes"] else "dim")
+    if d["alertas"]:
+        topo.append(f"   {len(d['alertas']) + d['alertas_ocultos']} alerta(s)", style="bold red")
+    blocos = [Panel(topo, title="token-controler", title_align="left", border_style="#ffaf5f", padding=(0, 1))]
+    if d["sessoes"]:
+        blocos.append(_bloco_sessoes(d))
+    else:
+        blocos.append(Text(f"Nenhuma sessão ativa nos últimos {d['ativa_min']} min.", style="dim"))
+    if d["alertas"]:
+        blocos.append(_bloco_alertas(d))
+    hoje = [b for b in (_bloco_projetos(d) if d["projetos"] else None, _bloco_horas(d) if d["custo_hoje_usd"] else None) if b]
+    if len(hoje) == 2 and largura >= 100:
+        grade = Table.grid(expand=True)
+        grade.add_column(ratio=1)
+        grade.add_column(ratio=1)
+        grade.add_row(*hoje)
+        blocos.append(grade)
+    else:
+        blocos += hoje
+    if d["sem_preco_hoje"]:
+        blocos.append(Text(f"* {d['sem_preco_hoje']} chamada(s) de hoje sem preço ficam fora dos custos", style="red"))
+    blocos.append(Text(f"atualizado {(hora or datetime.now()):%H:%M:%S}" + (f" · a cada {intervalo}s" if intervalo else "")
+                       + " · [r] atualizar · [q] sair · visão por período: tc painel", style="dim"))
+    return Group(*blocos)
+
+
+def executar_agora(con: sqlite3.Connection, limites: dict, apelidos: dict, intervalo: int = 15, projeto: str | None = None,
+                   ferramenta: str | None = None, console: Console | None = None) -> None:
+    """Laço da tela "agora": lê os logs, desenha, espera uma tecla ou o intervalo. `q`, Esc ou Ctrl+C saem; `r` atualiza."""
+    console = console or Console()
+    ao_vivo = console.is_terminal
+    cache: dict = {}
+    with (Live(console=console, screen=True, auto_refresh=False) if ao_vivo else nullcontext()) as live, teclado():
+        while True:
+            claude_code.ingerir(con, apelidos=apelidos)
+            momento = agora.agora_utc()
+            dados = agora.coletar(con, momento, limites, projeto, ferramenta, cache)
+            quadro = renderizar_agora(dados, console.size.width, hora=momento.astimezone(), intervalo=intervalo)
+            if ao_vivo:
+                live.update(quadro, refresh=True)
+            else:
+                console.print(quadro)
+            tecla = esperar_tecla(intervalo)
+            if tecla is not None and tecla.lower() == "q" or tecla in ("\x03", "\x1b"):
+                return

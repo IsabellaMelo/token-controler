@@ -9,7 +9,7 @@ import time
 from datetime import date, datetime
 from pathlib import Path
 
-from . import comportamento, custo, db, detalhe, diagnostico, qualidade
+from . import agora, comportamento, custo, db, detalhe, diagnostico, qualidade
 from .formato import fmt_dur, fmt_pct, fmt_tokens, fmt_usd
 from .fontes import claude_code
 
@@ -432,7 +432,8 @@ def cmd_qualidade(con, args) -> None:
           "ficam fora de 'sem tokens' e 'sem preço'.")
 
 
-def cmd_live(con, args) -> None:
+def cmd_painel(con, args) -> None:
+    """Painel de período (rich): o antigo `tc live`. Sem o rich, cai na tabela simples de hoje."""
     if not args.simples:
         try:
             from . import painel  # o rich só é carregado aqui; os outros comandos não dependem dele
@@ -463,6 +464,35 @@ def cmd_live(con, args) -> None:
                   f"(a cada {args.intervalo}s, Ctrl+C para sair)\n")
             print(tabela([c.format("projeto") for c in CAB_RESUMO], linhas))
             print(f"\nCusto estimado hoje: {fmt_usd(total)}")
+            sys.stdout.flush()
+            time.sleep(args.intervalo)
+    except KeyboardInterrupt:
+        print()
+
+
+def cmd_live(con, args) -> None:
+    """Tela "agora" (T20): sessões ativas, alertas, custo de hoje por projeto e por hora. Ctrl+C sai."""
+    limites, avisos = diagnostico.carregar_limites(diagnostico.caminho_config(args.db))
+    for aviso in avisos:
+        print(aviso, file=sys.stderr)
+    if not args.simples:
+        try:
+            from . import painel  # o rich só é carregado aqui; sem ele, a mesma tela sai em texto simples
+        except ImportError:
+            print("O pacote rich não está instalado: mostrando a tela em texto simples (`pip install -e .` instala o rich).",
+                  file=sys.stderr)
+            args.simples = True
+    apelidos = carregar_apelidos()
+    try:
+        if not args.simples:
+            painel.executar_agora(con, limites, apelidos, args.intervalo, args.projeto, args.ferramenta)
+            return
+        cache: dict = {}
+        while True:
+            claude_code.ingerir(con, apelidos=apelidos)
+            dados = agora.coletar(con, agora.agora_utc(), limites, args.projeto, args.ferramenta, cache)
+            sys.stdout.write("[2J[H")  # limpa a tela
+            print(agora.em_texto(dados))
             sys.stdout.flush()
             time.sleep(args.intervalo)
     except KeyboardInterrupt:
@@ -533,12 +563,19 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--ferramenta")
     p.set_defaults(func=cmd_qualidade)
 
-    p = com_filtros(sub.add_parser("live", help="painel que se atualiza sozinho (teclas 1-5 mudam o período, q sai)"))
+    p = sub.add_parser("live", help="tela focada em AGORA: sessões ativas, alertas, custo de hoje por projeto e por hora")
+    p.add_argument("--intervalo", type=int, default=10, help="segundos entre atualizações")
+    p.add_argument("--projeto")
+    p.add_argument("--ferramenta")
+    p.add_argument("--simples", action="store_true", help="texto puro, sem o rich")
+    p.set_defaults(func=cmd_live)
+
+    p = com_filtros(sub.add_parser("painel", help="painel de período que se atualiza sozinho (teclas 1-5 mudam o período, q sai)"))
     p.add_argument("--intervalo", type=int, default=15, help="segundos entre atualizações")
     p.add_argument("--periodo", choices=["hoje", "7d", "30d", "mes", "tudo"], default="hoje",
                    help="período inicial do painel (no painel, --desde e --ate não valem; use --periodo ou as teclas 1-5)")
     p.add_argument("--simples", action="store_true", help="painel antigo, só uma tabela de hoje (não usa o rich)")
-    p.set_defaults(func=cmd_live)
+    p.set_defaults(func=cmd_painel)
 
     args = ap.parse_args(argv)
     con = db.conectar(args.db)

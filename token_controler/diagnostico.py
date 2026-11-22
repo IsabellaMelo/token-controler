@@ -44,6 +44,8 @@ LIMITES_PADRAO: dict = {
     "contexto_pct_alta": 0.95,      #   ...e severidade alta acima dessa
     "releitura_ignora_extensoes": [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tif", ".tiff", ".heic", ".avif", ".ico"],
                                     # `tc sessao`: imagens não entram na releitura (costumam ser regeneradas por script, que o `tc` não vê)
+    "live_sessao_ativa_min": 15,    # `tc live`: sessão ativa = com atividade nos últimos tantos minutos
+    "live_alerta_janela_min": 60,   #   ...e só alerta de evento (pausa, falha...) dos últimos tantos minutos
     "releitura_min_sobreposicao": 0.25,  # `tc sessao`: releitura só conta se repete esta fração (ou mais) do trecho lido agora
     "janelas_contexto": {},         # {"prefixo-do-modelo": tokens}; vazio = sinal desligado (nenhuma tabela é presumida)
 }

@@ -38,8 +38,9 @@ Ele roda num notebook corporativo, com dados sensíveis. Por isso as regras abai
 3. **Só biblioteca padrão do Python 3.9+.** Sem dependências de runtime. `pytest` é a única dependência de desenvolvimento.
    Sintaxe compatível com 3.9: use `from __future__ import annotations`, sem `match`, sem `X | Y` fora de anotações.
    **Única exceção, aprovada pelo dono do projeto em 21/11/2026:** `rich`, usado só em `token_controler/painel.py`
-   (o painel do `tc live`). O `import rich` fica só nesse módulo, que o `cli.py` importa de forma preguiçosa; os demais
-   comandos continuam só com a biblioteca padrão e, se o `rich` faltar, `tc live` avisa e cai no modo `--simples`.
+   (o painel do `tc painel`, a tela do `tc live` e a árvore do `tc sessao`). O `import rich` fica só nesse módulo, que o
+   `cli.py` importa de forma preguiçosa; os demais comandos continuam só com a biblioteca padrão e, se o `rich` faltar, esses
+   três avisam e caem em texto simples (`--simples`).
    Não adicione outras dependências sem nova aprovação explícita.
 4. **Nunca estimar tokens a partir do texto.** Sem contagem real, o valor fica `NULL` ou é marcado "sem dados".
 5. **Só leitura das fontes.** Nunca modificar, mover ou apagar os arquivos de log das ferramentas.
@@ -53,7 +54,8 @@ Ele roda num notebook corporativo, com dados sensíveis. Por isso as regras abai
 ```
 token_controler/
   cli.py              # comandos `tc` (argparse); textos em português
-  painel.py           # painel do `tc live` e árvore do `tc sessao` (única parte que usa `rich`)
+  painel.py           # `tc painel`, tela do `tc live` e árvore do `tc sessao` (única parte que usa `rich`)
+  agora.py            # dados e texto simples da tela do `tc live` (só biblioteca padrão)
   detalhe.py          # dados e árvore neutra do `tc sessao` (só biblioteca padrão; reusa as regras de diagnostico.py)
   db.py               # schema SQLite e conexão
   precos.py           # tabela de preços (USD por milhão de tokens)

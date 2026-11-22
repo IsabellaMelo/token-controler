@@ -1,4 +1,4 @@
-"""`tc live --simples`: o painel antigo (uma tabela de hoje). Sai com Ctrl+C (KeyboardInterrupt), sem erro.
+"""`tc painel --simples`: o painel antigo (uma tabela de hoje). Sai com Ctrl+C (KeyboardInterrupt), sem erro.
 
 O painel novo, com rich, é testado em tests/test_painel.py."""
 
@@ -37,12 +37,12 @@ def rodar_quadros(banco, monkeypatch, capsys, quadros, *extra):
             raise KeyboardInterrupt
 
     monkeypatch.setattr(cli.time, "sleep", dormir)
-    cli.main(["--db", banco, "live", "--simples", "--intervalo", "3", *extra])  # Ctrl+C é a saída normal: não levanta
+    cli.main(["--db", banco, "painel", "--simples", "--intervalo", "3", *extra])  # Ctrl+C é a saída normal: não levanta
     assert set(chamadas) == {3}                                    # dorme o intervalo pedido
     return capsys.readouterr().out, len(chamadas)
 
 
-def test_live_desenha_o_painel_de_hoje_e_sai_com_ctrl_c(live, monkeypatch, capsys):
+def test_painel_simples_desenha_o_painel_de_hoje_e_sai_com_ctrl_c(live, monkeypatch, capsys):
     saida, _ = rodar_quadros(live, monkeypatch, capsys, 1)
     assert "\033[2J\033[H" in saida                                # limpa a tela antes de desenhar
     assert "token-controler · hoje · atualizado" in saida and "(a cada 3s, Ctrl+C para sair)" in saida
@@ -51,12 +51,12 @@ def test_live_desenha_o_painel_de_hoje_e_sai_com_ctrl_c(live, monkeypatch, capsy
     assert "Custo estimado hoje: $0.12" in saida
 
 
-def test_live_redesenha_a_cada_intervalo(live, monkeypatch, capsys):
+def test_painel_simples_redesenha_a_cada_intervalo(live, monkeypatch, capsys):
     saida, n = rodar_quadros(live, monkeypatch, capsys, 3)
     assert n == 3 and saida.count("\033[2J") == 3
 
 
-def test_live_pega_o_que_aparece_depois_do_primeiro_quadro(live, monkeypatch, capsys, tmp_path):
+def test_painel_simples_pega_o_que_aparece_depois_do_primeiro_quadro(live, monkeypatch, capsys, tmp_path):
     novo = tmp_path / "logs" / "projects" / "novo"
     novo.mkdir(parents=True)
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "logs"))
@@ -76,18 +76,18 @@ def test_live_pega_o_que_aparece_depois_do_primeiro_quadro(live, monkeypatch, ca
             raise KeyboardInterrupt
 
     monkeypatch.setattr(cli.time, "sleep", dormir)
-    cli.main(["--db", live, "live", "--simples", "--intervalo", "1"])
+    cli.main(["--db", live, "painel", "--simples", "--intervalo", "1"])
     primeiro, segundo = [q for q in capsys.readouterr().out.split("\033[2J\033[H") if q.strip()]
     assert "Custo estimado hoje: $0.02" in primeiro                # 1 chamada de US$ 0,024
     assert "Custo estimado hoje: $0.05" in segundo                 # 2 chamadas: o live releu o log que cresceu
 
 
-def test_live_respeita_o_filtro_de_projeto_na_tabela_e_no_rodape(live, monkeypatch, capsys):
+def test_painel_simples_respeita_o_filtro_de_projeto_na_tabela_e_no_rodape(live, monkeypatch, capsys):
     saida, _ = rodar_quadros(live, monkeypatch, capsys, 1, "--projeto", "nao-existe")
     assert "(sem dados no período)" in saida and "rpps" not in saida
     assert "Custo estimado hoje: -" in saida                       # o rodapé não pode somar os outros projetos
 
 
-def test_live_rodape_soma_so_o_projeto_filtrado(live, monkeypatch, capsys):
+def test_painel_simples_rodape_soma_so_o_projeto_filtrado(live, monkeypatch, capsys):
     saida, _ = rodar_quadros(live, monkeypatch, capsys, 1, "--projeto", "rpps")
     assert "rpps" in saida and "Custo estimado hoje: $0.12" in saida
