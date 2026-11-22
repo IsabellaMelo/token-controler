@@ -17,6 +17,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from . import detalhe, diagnostico
+from .db import ERRO_REAL
 from .fontes import claude_code
 
 MAX_ALERTAS = 8
@@ -80,7 +81,7 @@ def sessoes_ativas(con: sqlite3.Connection, momento: datetime, lim: dict, projet
             arquivo = linha[0] if linha else None
         proj = next((c["projeto"] for c in reversed(chamadas) if c["projeto"]), None) or (con.execute(
             "SELECT MAX(projeto) FROM eventos WHERE sessao_id = ?", (sessao,)).fetchone()[0])
-        erros_tool = con.execute("SELECT COALESCE(SUM(erro = 1), 0) FROM tool_calls WHERE sessao_id = ?", (sessao,)).fetchone()[0]
+        erros_tool = con.execute(f"SELECT COALESCE(SUM({ERRO_REAL}), 0) FROM tool_calls WHERE sessao_id = ?", (sessao,)).fetchone()[0]
         saida.append({
             "sessao": sessao, "projeto": proj or "?", "inicio": inicio.isoformat(), "ultimo": ultimo.isoformat(),
             "atras_s": max(0.0, (momento - ultimo).total_seconds()), "ativo_s": ativo,

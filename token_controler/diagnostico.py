@@ -254,7 +254,7 @@ def corridas_de_falhas(tools: list[dict], lim: dict, por_alvo: bool = False) -> 
                              "chamadas": list(atual)})
 
     for t in tools:
-        if t["erro"] != 1:
+        if not db.eh_erro_real(t["erro"], t.get("erro_categoria")):   # recusa do usuário não é falha (T23)
             fechar()
             atual = []
         elif atual and t["tool"] == atual[0]["tool"] and (not por_alvo or t.get("alvo_hash") == atual[0].get("alvo_hash")):

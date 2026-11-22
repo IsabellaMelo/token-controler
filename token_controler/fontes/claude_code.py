@@ -16,6 +16,7 @@ from ..alvo import alvo_da_tool, nome_da_tool, sal_do_banco, trecho_da_leitura
 from ..comandos import TOOLS_SHELL, classificar_comando
 from ..custo import custo_registrado_valido, decidir
 from ..db import apagar_arquivo, gravar_nome_arquivo, gravar_trecho_leitura, ler_modo
+from ..regras_erros import classificar, codigo_de_saida, servidor_mcp_da_tool
 from ..rotulos import rotular_prompt
 
 FERRAMENTA = "claude_code"
@@ -80,6 +81,40 @@ def _texto_do_prompt(linha: dict):
         return " ".join(b["text"] for b in conteudo
                         if isinstance(b, dict) and b.get("type") == "text" and isinstance(b.get("text"), str))
     return conteudo
+
+
+TOOLS_SUBAGENTE = frozenset({"Agent", "Task"})
+LIMITE_ERRO = 20000  # caracteres da mensagem de erro mantidos em memória até a classificação
+
+
+def _texto_do_erro(bloco: dict) -> str:
+    """Mensagem de erro de um tool_result, só para `regras_erros.classificar`. Nunca é gravada, impressa nem logada."""
+    c = bloco.get("content")
+    if isinstance(c, str):
+        return c[:LIMITE_ERRO]
+    if isinstance(c, list):
+        return " ".join(b["text"] for b in c
+                        if isinstance(b, dict) and b.get("type") == "text" and isinstance(b.get("text"), str))[:LIMITE_ERRO]
+    return ""
+
+
+def _negacao(linha: dict) -> str | None:
+    """`toolDenialKind` da linha do resultado (lista fixa: user-rejected, permission-rule...); outro formato vira None."""
+    v = linha.get("toolDenialKind")
+    return v if isinstance(v, str) and 0 < len(v) <= 40 and v.replace("-", "").isalnum() else None
+
+
+def _agente_do_resultado(linha: dict, n_resultados: int) -> str | None:
+    """`agentId` do resultado de uma chamada `Agent` (só um ID, não texto). Só vale se a linha tem um resultado."""
+    tur = linha.get("toolUseResult")
+    ag = tur.get("agentId") if isinstance(tur, dict) and n_resultados == 1 else None
+    return ag if isinstance(ag, str) and 0 < len(ag) <= 64 and ag.replace("-", "").replace("_", "").isalnum() else None
+
+
+def _agente_do_arquivo(arquivo: Path) -> str | None:
+    """`agent-<id>.jsonl` -> `<id>`; qualquer outro arquivo -> None."""
+    nome = arquivo.stem
+    return nome[len("agent-"):] if "subagents" in arquivo.parts and nome.startswith("agent-") else None
 
 
 def _subtipo(bloco: dict) -> str | None:
@@ -164,9 +199,13 @@ def processar_arquivo(con: sqlite3.Connection, arquivo: Path, apelidos: dict[str
 
     chamadas: dict[tuple, dict] = {}
     tools: dict[str, dict] = {}
-    resultados: dict[str, tuple] = {}  # tool_use_id -> (is_error, timestamp do resultado)
+    # tool_use_id -> (is_error, timestamp do resultado, mensagem de erro SÓ EM MEMÓRIA, toolDenialKind, agentId do Agent)
+    resultados: dict[str, tuple] = {}
     eventos: list[tuple] = []
     linhas_ruins = 0
+    turno = 0                 # T22: sobe a cada prompt da thread principal; subagente recebe o do pai depois (`ligar_sessoes`)
+    seq = 0                   # T22: ordem de aparição no arquivo; `ligar_sessoes` refaz a ordem da sessão inteira
+    agente_arquivo = _agente_do_arquivo(arquivo)
 
     with arquivo.open("r", encoding="utf-8", errors="replace") as f:
         for bruta in f:
@@ -196,14 +235,19 @@ def processar_arquivo(con: sqlite3.Connection, arquivo: Path, apelidos: dict[str
                 # só o horário: marca onde o contexto foi compactado (o texto do resumo nunca é lido)
                 eventos.append((FERRAMENTA, sessao, projeto, ts, "compactacao", caminho, None))
             if _eh_prompt(linha) and not eh_subagente_arquivo:
+                turno += 1
                 # só o rótulo derivado vai para o banco; o texto do prompt não é guardado em lugar nenhum
                 eventos.append((FERRAMENTA, sessao, projeto, ts, "prompt", caminho,
                                 rotular_prompt(_texto_do_prompt(linha))))
 
             if tipo == "user" and isinstance(msg.get("content"), list):
-                for b in msg["content"]:
-                    if isinstance(b, dict) and b.get("type") == "tool_result" and b.get("tool_use_id"):
-                        resultados[b["tool_use_id"]] = (bool(b.get("is_error")), ts)
+                blocos = [b for b in msg["content"]
+                          if isinstance(b, dict) and b.get("type") == "tool_result" and b.get("tool_use_id")]
+                for b in blocos:
+                    falhou = bool(b.get("is_error"))
+                    resultados[b["tool_use_id"]] = (
+                        falhou, ts, _texto_do_erro(b) if falhou else None, _negacao(linha) if falhou else None,
+                        _agente_do_resultado(linha, len(blocos)))
 
             if tipo != "assistant":
                 continue
@@ -232,13 +276,20 @@ def processar_arquivo(con: sqlite3.Connection, arquivo: Path, apelidos: dict[str
                 "subagente": subagente,
                 "erro_api": int(erro_api),
                 "registrado": custo_registrado_valido(linha.get("costUSD")),
+                "turno": None if eh_subagente_arquivo else turno,
+                "seq": seq,
+                "subagente_id": agente_arquivo,
             }
             # O Claude Code grava uma linha por bloco de conteúdo da mesma resposta.
             # Fica a linha com o maior output (a mais completa), mas o primeiro timestamp.
             anterior = chamadas.get(chave)
+            if anterior is None:
+                seq += 1
+                registro["seq"] = seq
             if anterior is None or registro["output"] >= anterior["output"]:
                 if anterior is not None:
                     registro["ts"] = min(anterior["ts"], registro["ts"])
+                    registro["turno"], registro["seq"] = anterior["turno"], anterior["seq"]  # a posição é a da 1ª linha
                     # empate de output: prefere a cópia que gravou o costUSD (como o ccusage)
                     if registro["output"] == anterior["output"] and registro["registrado"] is None:
                         registro["registrado"] = anterior["registrado"]
@@ -246,7 +297,12 @@ def processar_arquivo(con: sqlite3.Connection, arquivo: Path, apelidos: dict[str
 
             for b in msg.get("content") or []:
                 if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("id"):
+                    if b["id"] not in tools:
+                        seq += 1
                     tools.setdefault(b["id"], {
+                        "turno": None if eh_subagente_arquivo else turno, "seq": seq,
+                        "chamada_id": registro["id"],          # a chamada ao modelo que pediu a tool
+                        "servidor_mcp": servidor_mcp_da_tool(b.get("name")),
                         "sessao": sessao, "projeto": projeto, "ts": ts,
                         "tool": b.get("name") or "?", "subagente": subagente,
                         # só o hash do caminho: o caminho em texto e o resto do input são descartados
@@ -268,30 +324,80 @@ def processar_arquivo(con: sqlite3.Connection, arquivo: Path, apelidos: dict[str
             """INSERT OR IGNORE INTO chamadas
                (id, ferramenta, sessao_id, projeto, ts, modelo, input_tokens, output_tokens,
                 cache_write_5m, cache_write_1h, cache_read, custo_usd, subagente, erro_api, arquivo,
-                custo_registrado, origem_custo)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                custo_registrado, origem_custo, turno, seq, subagente_id)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (r["id"], FERRAMENTA, r["sessao"], r["projeto"], r["ts"], r["modelo"], r["input"],
              r["output"], r["w5"], r["w1"], r["read"], custo, r["subagente"], r["erro_api"], caminho,
-             r["registrado"], origem),
+             r["registrado"], origem, r["turno"], r["seq"], r["subagente_id"]),
         )
     for tool_id, t in tools.items():
-        erro, ts_resultado = resultados.get(tool_id, (None, None))
+        erro, ts_resultado, mensagem, negacao, agente = resultados.get(tool_id, (None, None, None, None, None))
+        # T23: a mensagem só passa por estas duas funções puras; o que sai é um rótulo e um inteiro
+        categoria = classificar(mensagem, t["tool"], t["servidor_mcp"], negacao) if erro else None
+        saida = codigo_de_saida(mensagem, t["tool"]) if erro else None
+        mensagem = None
         con.execute(
             """INSERT OR IGNORE INTO tool_calls
                (id, ferramenta, sessao_id, projeto, ts, tool, erro, subagente, arquivo, duracao_ms, alvo_hash,
-                subtipo, alvo_nome, leitura_ini, leitura_qtd)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                subtipo, alvo_nome, leitura_ini, leitura_qtd, turno, seq, chamada_id, subagente_id, servidor_mcp,
+                exit_code, erro_categoria)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (f"{FERRAMENTA}:{tool_id}", FERRAMENTA, t["sessao"], t["projeto"], t["ts"], t["tool"],
              None if erro is None else int(erro), t["subagente"], caminho,
              _duracao_ms(t["ts"], ts_resultado), t["alvo"], t["subtipo"], t["nome"],
-             t["trecho"][0], t["trecho"][1]),
+             t["trecho"][0], t["trecho"][1], t["turno"], t["seq"], t["chamada_id"],
+             agente if t["tool"] in TOOLS_SUBAGENTE and agente else agente_arquivo,
+             t["servidor_mcp"], saida, categoria),
         )
     con.executemany(
         "INSERT INTO eventos (ferramenta, sessao_id, projeto, ts, tipo, arquivo, rotulo) VALUES (?,?,?,?,?,?,?)",
         eventos,
     )
 
-    return {"chamadas": len(chamadas), "tools": len(tools), "linhas_ruins": linhas_ruins}
+    sessoes = {r["sessao"] for r in chamadas.values()} | {t["sessao"] for t in tools.values()}
+    return {"chamadas": len(chamadas), "tools": len(tools), "linhas_ruins": linhas_ruins, "sessoes": sessoes}
+
+
+def _id_do_tool_use_do_subagente(arquivo: str) -> str | None:
+    """`toolUseId` do `agent-<id>.meta.json` ao lado do log do subagente (só um ID); None se não houver."""
+    meta = Path(arquivo).with_suffix(".meta.json")
+    try:
+        v = json.loads(meta.read_text(encoding="utf-8", errors="replace")).get("toolUseId")
+    except (OSError, ValueError, AttributeError):
+        return None
+    return v if isinstance(v, str) and 0 < len(v) <= 80 else None
+
+
+def ligar_sessoes(con: sqlite3.Connection, sessoes: set[str]) -> None:
+    """Liga o que está em arquivos diferentes da mesma sessão (T22). Roda depois de processar os arquivos.
+
+    1. Reserva do `subagente_id` da chamada `Agent`: o `toolUseId` do `.meta.json` do subagente.
+    2. O turno das chamadas e tools de um subagente é o da chamada `Agent` que o abriu.
+    3. `seq`: refaz a ordem da sessão inteira por horário (os subagentes entram no meio da thread principal).
+    """
+    for sessao in sessoes:
+        arquivos = [r[0] for r in con.execute(
+            "SELECT DISTINCT arquivo FROM chamadas WHERE sessao_id = ? AND subagente_id IS NOT NULL", (sessao,))]
+        for arq in arquivos:
+            agente = Path(arq).stem[len("agent-"):]
+            uso = _id_do_tool_use_do_subagente(arq)
+            if uso:
+                con.execute("UPDATE tool_calls SET subagente_id = ? WHERE id = ? AND subagente_id IS NULL",
+                            (agente, f"{FERRAMENTA}:{uso}"))
+        for tabela in ("chamadas", "tool_calls"):
+            con.execute(f"""UPDATE {tabela} SET turno = (
+                                SELECT t.turno FROM tool_calls t
+                                WHERE t.sessao_id = {tabela}.sessao_id AND t.subagente_id = {tabela}.subagente_id
+                                  AND t.subagente = 0 LIMIT 1)
+                            WHERE sessao_id = ? AND subagente = 1 AND subagente_id IS NOT NULL""", (sessao,))
+        passos = [(r["ts"], 0, r["seq"] or 0, "chamadas", r["id"]) for r in con.execute(
+            "SELECT id, ts, seq FROM chamadas WHERE sessao_id = ?", (sessao,))]
+        passos += [(r["ts"], 1, r["seq"] or 0, "tool_calls", r["id"]) for r in con.execute(
+            "SELECT id, ts, seq FROM tool_calls WHERE sessao_id = ?", (sessao,))]
+        passos.sort(key=lambda x: x[:3])
+        for tabela in ("chamadas", "tool_calls"):
+            con.executemany(f"UPDATE {tabela} SET seq = ? WHERE id = ?",
+                            [(n, p[4]) for n, p in enumerate(passos, 1) if p[3] == tabela])
 
 
 def ingerir(con: sqlite3.Connection, pasta: Path | None = None, tudo: bool = False,
@@ -311,6 +417,7 @@ def ingerir(con: sqlite3.Connection, pasta: Path | None = None, tudo: bool = Fal
     agora = datetime.now(timezone.utc).isoformat(timespec="seconds")
     gravar_nomes, gravar_trechos = gravar_nome_arquivo(con), gravar_trecho_leitura(con)
 
+    tocadas: set[str] = set()
     for arquivo in sorted(pasta.rglob("*.jsonl")):
         st = arquivo.stat()
         if not tudo and conhecidos.get(str(arquivo)) == (st.st_size, st.st_mtime):
@@ -326,5 +433,7 @@ def ingerir(con: sqlite3.Connection, pasta: Path | None = None, tudo: bool = Fal
         resumo["arquivos_lidos"] += 1
         for k in ("chamadas", "tools", "linhas_ruins"):
             resumo[k] += r[k]
+        tocadas |= r["sessoes"]
+    ligar_sessoes(con, tocadas)
     con.commit()
     return resumo

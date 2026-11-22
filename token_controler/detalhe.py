@@ -22,6 +22,7 @@ from pathlib import Path
 from . import alvo, comportamento, diagnostico
 from .comandos import TOOLS_SHELL
 from .comportamento import DELEGACAO, EDICAO
+from .db import eh_erro_real
 from .fontes import claude_code
 from .formato import fmt_pct, fmt_tokens
 from .precos import achar_preco
@@ -271,7 +272,7 @@ def analisar(con: sqlite3.Connection, sessao_id: str, lim: dict) -> dict:
         "custo_usd": custo_total, "chamadas_sem_custo": sem_custo,
         "categoria": comportamento.resumo_da_sessao(turnos_c)["categoria"],
         "prompts": len(prompts), "chamadas": len(chamadas), "tools": len(tools),
-        "erros_tool": sum(t["erro"] == 1 for t in tools), "compactacoes": len(compactacoes),
+        "erros_tool": sum(eh_erro_real(t["erro"], t.get("erro_categoria")) for t in tools), "compactacoes": len(compactacoes),
         "cache_taxa": sum(c["cache_read"] for c in chamadas if not c["erro_api"]) / total_in if total_in else None,
         "tools_com_hash_sem_nome": sum(1 for t in tools if t["alvo_hash"] and not t.get("alvo_nome")),
         "turnos": [turnos[i] for i in sorted(turnos)],
@@ -283,6 +284,7 @@ def analisar(con: sqlite3.Connection, sessao_id: str, lim: dict) -> dict:
 def _item_tool(t: dict, lim: dict) -> dict:
     return {
         "tipo": "tool", "id": t["id"], "tool": t["tool"], "ts": t["ts"], "erro": t["erro"],
+        "erro_categoria": t.get("erro_categoria"),
         "duracao_ms": t["duracao_ms"], "custo_usd": t.get("custo"), "subtipo": t["subtipo"],
         "alvo_nome": t.get("alvo_nome"), "alvo_hash": (t["alvo_hash"] or "")[:8] or None,
         "leitura_ini": t.get("leitura_ini"), "leitura_qtd": t.get("leitura_qtd"), "trecho": _texto_do_trecho(t),
@@ -526,8 +528,11 @@ def _rotulo_tool(it: dict, comandos: dict[str, str] | None) -> list:
         partes.append((f"  #{it['alvo_hash']}", "dim"))     # ingerida antes do nome: só o hash curto
     if it["trecho"]:
         partes.append((f" · {it['trecho']}", "dim"))
-    partes.append(("  " + ("✓" if it["erro"] == 0 else "✗" if it["erro"] == 1 else "?"),
-                   "ok" if it["erro"] == 0 else "erro" if it["erro"] == 1 else "dim"))
+    if it["erro"] == 1 and it.get("erro_categoria") == "recusado_usuario":
+        partes.append(("  ⊘ recusado", "dim"))          # o usuário negou: não é falha da tool
+    else:
+        partes.append(("  " + ("✓" if it["erro"] == 0 else "✗" if it["erro"] == 1 else "?"),
+                       "ok" if it["erro"] == 0 else "erro" if it["erro"] == 1 else "dim"))
     partes.append((f"  {usd(it['custo_usd'])}", "custo"))
     tempo = dur_ms(it["duracao_ms"])
     partes.append((f"  {tempo}" + (" (espera)" if it["espera"] and it["duracao_ms"] is not None else ""), "dim"))

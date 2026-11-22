@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from .db import ERRO_REAL
 from .precos import achar_preco
 
 # Chamada de erro de API não tem tokens nem custo e fica fora destas contas.
@@ -33,6 +34,12 @@ def coletar(con: sqlite3.Connection, ferramenta: str | None = None) -> list[dict
                SUM(origem_custo = 'calculado') AS calculado,
                SUM(origem_custo = 'sem_preco') AS sem_preco
         FROM chamadas {filtro} GROUP BY ferramenta""", ferramenta)
+    # T23: erros de tool por categoria. `outro` alto = faltam regras em regras_erros.py; sem categoria = ler de novo (`--tudo`)
+    erros = _por_ferramenta(con, f"""
+        SELECT ferramenta, SUM({ERRO_REAL}) AS erros_tool,
+               SUM({ERRO_REAL} AND erro_categoria = 'outro') AS erros_outro,
+               SUM({ERRO_REAL} AND erro_categoria IS NULL) AS erros_sem_categoria
+        FROM tool_calls {filtro} GROUP BY ferramenta""", ferramenta)
     sem_preco: dict[str, list[dict]] = {}
     for r in con.execute(f"""
         SELECT ferramenta, modelo, COUNT(*) AS n FROM chamadas
@@ -43,7 +50,7 @@ def coletar(con: sqlite3.Connection, ferramenta: str | None = None) -> list[dict
 
     saida = []
     for nome in sorted(set(arquivos) | set(chamadas)):
-        a, c = arquivos.get(nome, {}), chamadas.get(nome, {})
+        a, c, e = arquivos.get(nome, {}), chamadas.get(nome, {}), erros.get(nome, {})
         n_arquivos, sem_contagem = a.get("arquivos") or 0, a.get("sem_contagem") or 0
         modelos = sem_preco.get(nome, [])
         linha = {
@@ -59,6 +66,9 @@ def coletar(con: sqlite3.Connection, ferramenta: str | None = None) -> list[dict
             "origem_registrado": c.get("registrado") or 0,
             "origem_calculado": c.get("calculado") or 0,
             "origem_sem_preco": c.get("sem_preco") or 0,
+            "erros_tool": e.get("erros_tool") or 0,                  # sem as recusas do usuário
+            "erros_tool_outro": e.get("erros_outro") or 0,           # sem regra de categoria (design 6.4)
+            "erros_tool_sem_categoria": e.get("erros_sem_categoria") or 0,   # lidos antes da T23: `tc ingest --tudo`
             "nivel_detalhe": None,  # depende da T09 (nível de detalhe por sessão)
         }
         linha["confianca"], linha["motivos"] = avaliar(linha)
