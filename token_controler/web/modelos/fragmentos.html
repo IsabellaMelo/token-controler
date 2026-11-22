@@ -1,0 +1,111 @@
+<!-- Pedaços repetidos das telas do tc web. Cada um começa numa linha "@nome" dentro de um comentário HTML e vai até o próximo.
+     Os $campos são preenchidos por web/telas.py: todo valor vindo do banco passa por html.escape antes de entrar aqui. -->
+<!-- @aba_atual -->
+<a href="$href" class="aba aba-atual" aria-current="page">$nome</a>
+<!-- @aba_off -->
+<span class="aba aba-off" aria-disabled="true" title="$dica">$nome</span>
+<!-- @chip -->
+<span class="chip">$rotulo: <strong>$valor</strong></span>
+<!-- @aviso -->
+<p class="aviso" role="status">$texto</p>
+<!-- @sparkline -->
+<svg class="sparkline" viewBox="0 0 200 40" preserveAspectRatio="none" role="img" aria-label="$rotulo"><polyline points="$pontos" vector-effect="non-scaling-stroke"></polyline></svg>
+<!-- @faixa -->
+<div class="faixa" role="img" aria-label="$rotulo">$partes</div>
+<!-- @parte -->
+<div class="$classe" style="width: $largura%" title="$dica"></div>
+<!-- @trilho -->
+<div class="trilho" role="img" aria-label="$rotulo"><div class="trilho-cheio $classe" style="width: $largura%"></div>$marca</div>
+<!-- @meta -->
+<div class="meta" style="left: $posicao%" title="$dica"></div>
+<!-- @horas -->
+<div class="horas" role="img" aria-label="$rotulo">
+$colunas
+</div>
+<div class="horas-eixo">
+$eixo
+</div>
+<!-- @hora -->
+<div class="hora $classe" title="$dica">
+<span class="hora-valor">$valor</span>
+<div class="hora-barra" style="height: ${altura}px"></div>
+</div>
+<!-- @hora_rotulo -->
+<span>$rotulo</span>
+<!-- @rosca -->
+<div class="rosca-linha">
+<div class="rosca" role="img" aria-label="$rotulo" style="background: conic-gradient($fatias)">
+<div class="rosca-miolo">
+<span class="rosca-total">$total</span>
+<span class="rosca-sub">$sub</span>
+</div>
+</div>
+<ul class="legenda">
+$itens
+</ul>
+</div>
+$nota
+<!-- @legenda -->
+<li><span class="quadrado $classe"></span><span class="legenda-nome">$nome</span><span class="legenda-valor">$valor</span></li>
+<!-- @nota -->
+<p class="nota">$texto</p>
+<!-- @item -->
+<div class="item" title="$dica">
+<div class="item-cab"><span class="item-nome">$nome</span><span class="item-valor">$valor</span></div>
+<div class="trilho-fino"><div class="cheio $classe" style="width: $largura%"></div></div>
+</div>
+<!-- @tool -->
+<div class="tool" title="$dica">
+<span class="tool-nome">$nome</span>
+<div class="tool-trilho"><div class="tool-cheio" style="width: $largura%"><div class="tool-erro" style="width: $erro%"></div></div></div>
+<span class="tool-valor $classe">$valor</span>
+</div>
+<!-- @sem_dados -->
+<p class="sem-dados">$texto</p>
+<!-- @tabela -->
+<div class="rolagem">
+<table class="sessoes">
+<thead>
+<tr>
+<th scope="col">Início</th>
+<th scope="col">Projeto</th>
+<th scope="col">Modelo</th>
+<th scope="col" class="dir">Duração</th>
+<th scope="col" class="dir">Ativo</th>
+<th scope="col" class="dir">Chamadas</th>
+<th scope="col" class="dir">Cache</th>
+<th scope="col" class="dir">Erros</th>
+<th scope="col" class="dir">Custo</th>
+<th scope="col">Sinais</th>
+</tr>
+</thead>
+<tbody>
+$linhas
+</tbody>
+</table>
+</div>
+<!-- @linha -->
+<tr>
+<td>$inicio</td>
+<td><a class="sessao-link" href="$href">$projeto</a>$andamento</td>
+<td class="apagado">$modelo</td>
+<td class="dir">$duracao</td>
+<td class="dir">$ativo</td>
+<td class="dir">$chamadas</td>
+<td class="dir $classe_cache">$cache</td>
+<td class="dir">$erros</td>
+<td class="dir forte">$custo</td>
+<td>$sinais</td>
+</tr>
+<!-- @andamento -->
+<span class="selo-andamento">em andamento</span>
+<!-- @selo -->
+<span class="selo selo-$severidade" title="$dica">$texto</span>
+<!-- @sem_sinal -->
+<span class="vazio">—</span>
+<!-- @recado -->
+<section class="recado">
+<h1>$titulo</h1>
+<p>$texto</p>
+<p><a href="/">Voltar para Hoje</a></p>
+</section>

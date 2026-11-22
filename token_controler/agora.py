@@ -12,11 +12,10 @@ na hora, em memória, e nunca vai para o banco.
 from __future__ import annotations
 
 import sqlite3
-from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from . import detalhe, diagnostico
+from . import consultas, detalhe, diagnostico
 from .db import ERRO_REAL
 from .fontes import claude_code
 
@@ -34,17 +33,6 @@ def _t(ts):
     return diagnostico._t(ts) if ts else None
 
 
-def _filtro(projeto: str | None, ferramenta: str | None) -> tuple[str, list]:
-    cond, params = [], []
-    if projeto:
-        cond.append("projeto = ?")
-        params.append(projeto)
-    if ferramenta:
-        cond.append("ferramenta = ?")
-        params.append(ferramenta)
-    return (" AND ".join(cond) or "1=1"), params
-
-
 # ---------- sessões ativas ----------
 
 def _ativo_s(horarios: list[datetime], pausa_s: float) -> float:
@@ -57,7 +45,7 @@ def sessoes_ativas(con: sqlite3.Connection, momento: datetime, lim: dict, projet
                    ferramenta: str | None = None, ler_branch=claude_code.branch_do_log) -> list[dict]:
     """Sessões com atividade nos últimos `live_sessao_ativa_min`, da mais recente para a mais antiga."""
     corte = (momento - timedelta(minutes=lim["live_sessao_ativa_min"])).isoformat()
-    cond, p = _filtro(projeto, ferramenta)
+    cond, p = consultas.Filtro(projeto=projeto, ferramenta=ferramenta).sql()
     ids = [r[0] for r in con.execute(f"""
         SELECT DISTINCT sessao_id FROM (
             SELECT sessao_id, projeto, ferramenta, ts FROM eventos WHERE tipo = 'atividade'
@@ -134,27 +122,8 @@ def alertas(con: sqlite3.Connection, ids: list[str], momento: datetime, lim: dic
 
 # ---------- hoje ----------
 
-def custo_de_hoje(con: sqlite3.Connection, hoje: date, projeto: str | None = None, ferramenta: str | None = None) -> dict:
-    """Custo de hoje (dia local) por projeto e por hora local do dia."""
-    cond, p = _filtro(projeto, ferramenta)
-    por_projeto: dict[str, dict] = defaultdict(lambda: {"custo_usd": 0.0, "sessoes": set()})
-    horas = [0.0] * 24
-    total, sem_preco = 0.0, 0
-    for r in con.execute(f"""SELECT ts, COALESCE(projeto, '?') AS projeto, sessao_id, custo_usd, erro_api FROM chamadas
-                             WHERE date(ts, 'localtime') = ? AND {cond}""", [hoje.isoformat(), *p]):
-        if r["custo_usd"] is None:
-            sem_preco += not r["erro_api"]
-            continue
-        t = _t(r["ts"])
-        if t is None:
-            continue
-        horas[t.astimezone().hour] += r["custo_usd"]
-        por_projeto[r["projeto"]]["custo_usd"] += r["custo_usd"]
-        por_projeto[r["projeto"]]["sessoes"].add(r["sessao_id"])
-        total += r["custo_usd"]
-    projetos = [{"projeto": k, "custo_usd": v["custo_usd"], "sessoes": len(v["sessoes"])} for k, v in por_projeto.items()]
-    projetos.sort(key=lambda x: (-x["custo_usd"], x["projeto"]))
-    return {"projetos": projetos, "horas": horas, "custo_usd": total, "sem_preco": sem_preco}
+# custo do dia por projeto e por hora: a consulta é a mesma do tc web (consultas.por_hora)
+custo_de_hoje = consultas.por_hora
 
 
 def mini_grafico(horas: list[float]) -> str:

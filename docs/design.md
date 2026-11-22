@@ -262,7 +262,7 @@ CLI `tc` (comandos em português):
 | `tc limpar-trechos` | apaga os trechos de leitura (`leitura_ini`, `leitura_qtd`) gravados (T19, em teste) | ✅ |
 | `tc comportamento [--json]` | categoria dos turnos, one-shot e custo por categoria | ✅ |
 | `tc qualidade [--ferramenta] [--json]` | confiança dos dados (linhas ruins, sem preço, sem tokens, origem do custo) | ✅ (nível de detalhe entra com a T09; a contagem de erros em `outro` entra com a T23) |
-| `tc web [--porta N]` | painel local no navegador: Hoje, detalhe da sessão e sequência da sessão (8.1) | Fase 2.5 (T24 a T28) |
+| `tc web [--porta N]` | painel local no navegador: Hoje, detalhe da sessão e sequência da sessão (8.1) | Hoje ✅ (T24, `--demo` para testes); T25 a T28 pendentes |
 | `--json` em todos | análise no pandas | Fase 1.5 |
 
 **Aba no VS Code:** `Ctrl+Shift+P` → *Terminal: Create Terminal in Editor Area* → `tc live` ou `tc painel`.
@@ -310,6 +310,25 @@ com dados da sessão.
 
 **Configuração** (prioridade, como no ccusage): argumentos do CLI > `~/.token-controler/config.json` > padrões. Apelidos de projeto em `projetos.json`.
 
+**Decisões da implementação (T24, 22/11/2026):**
+- Porta padrão 8765 (`--porta` > `web_porta` no config.json > 8765); ocupada → até 20 portas seguintes. No Windows o
+  socket usa `SO_EXCLUSIVEADDRUSE` (sem isso, `SO_REUSEADDR` deixaria dois servidores na mesma porta).
+- Cabeçalhos: `Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:` (sem
+  script, sem recurso externo), `nosniff`, `no-referrer`, `no-store`; sem CORS; `log_message` desligado. `Host` aceito:
+  `127.0.0.1:<porta>` e `localhost:<porta>`; outro → 403. Método que não é `GET` → 405.
+- CSS numa folha comum (`/estilo.css`) com classes; `style=` só para a geometria calculada (largura, altura, fatias da
+  rosca), por isso o `'unsafe-inline'` só em `style-src`. Modelos HTML em `token_controler/web/modelos/` (`string.Template`);
+  todo valor entra escapado, salvo trechos montados pelo próprio `telas.py`.
+- Banco: o servidor liga o WAL e abre uma conexão de escrita só para a thread de ingest (5 s, com trava contra duas
+  rodadas); cada requisição lê com `mode=ro` (validado no Windows: lê com o WAL aberto, escrita falha).
+- `tc web --demo`: banco fictício gerado por `token_controler/demo.py` (horários no fuso local, semente fixa), "agora"
+  congelado em 22/11/2026 11:07:42, sem ingest e sem `<meta refresh>`. É a base dos testes visuais (Playwright, só
+  desenvolvimento, `tests/visual/`).
+- Tela Hoje: sinais na tabela só de severidade média e alta, num selo só (os de baixa ficam para o detalhe da sessão);
+  "custo por tipo de token" só divide o custo `calculado` (o `registrado` aparece numa fatia "sem divisão"); "sem cache
+  custaria" = os mesmos tokens com o contexto inteiro cobrado como input. As abas de período ficam visíveis mas desligadas
+  até a T25, e `/sessao/<id>` mostra um aviso até a T26.
+
 ---
 
 ## 9. Privacidade e segurança
@@ -334,8 +353,8 @@ com dados da sessão.
 | Fase | Entrega | Estado |
 |---|---|---|
 | **1** | SQLite + adaptador Claude Code + CLI (`ingest`, `resumo`, `sessoes`, `tools`, `live`) + testes e CI | ✅ entregue, testada com logs sintéticos |
-| **1.5** | Validação com dados reais + `--json`; **além disso**, confirmar nos logs reais `tool_use_id`, `parentUuid`, a ligação com o subagente e o texto de erro dos `tool_result` (T21) | T01 e T02 ✅; T21 pendente |
-| **2** | Adaptador Copilot VS Code (`chatSessions` e `agent-traces.db`) + `origem_custo` + `nivel_detalhe` + `tc qualidade`; **além disso**, o `ingest` grava os campos da seção 5 (T22) e as categorias de erro da 6.4 (T23) | Copilot depende da estrutura real dos arquivos; T22 e T23 pendentes |
+| **1.5** | Validação com dados reais + `--json`; **além disso**, confirmar nos logs reais `tool_use_id`, `parentUuid`, a ligação com o subagente e o texto de erro dos `tool_result` (T21) | T01, T02 e T21 ✅ |
+| **2** | Adaptador Copilot VS Code (`chatSessions` e `agent-traces.db`) + `origem_custo` + `nivel_detalhe` + `tc qualidade`; **além disso**, o `ingest` grava os campos da seção 5 (T22) e as categorias de erro da 6.4 (T23) | Copilot depende da estrutura real dos arquivos; T22 e T23 ✅ |
 | **2.5** | `tc web` (8.1), em quatro passos: Hoje → abas e filtros → detalhe da sessão → sequência (T24 a T28) | Pendente |
 | **3** | Categorias de tarefa, one-shot e `tc diagnostico` com recomendações; **além disso**, os sinais de loop por categoria e de erro recorrente (T29) | T13 a T16, T19 e T20 ✅; T29 pendente |
 | **4** | Calibrar os limites com 2 a 3 semanas de uso real | — |
@@ -352,7 +371,10 @@ com dados da sessão.
 1. Qual é a estrutura real dos `chatSessions` do Copilot no notebook do trabalho, e o `agent-traces.db` existe?
 2. A TI permite rodar scripts Python que leem `%APPDATA%\Code`?
 3. Qual tabela de preços usar para os modelos do Copilot que não são da Anthropic (GPT, Gemini)?
-4. Os números da Fase 1 batem com o `/cost` do Claude Code em uma sessão real?
+4. ~~Os números da Fase 1 batem com o `/cost` do Claude Code em uma sessão real?~~ **Validado** (22/11/2026) contra o
+   ccusage 20.0.51 (`ccusage claude daily --offline --breakdown`), por dia × modelo: input, output, gravação de cache (5 min
+   e 1 h), leitura de cache e custo batem em 0,000% nos dias fechados (15, 20 e 21/11) e, numa cópia congelada dos logs,
+   também no dia em andamento. O `ccusage daily` sem `claude` soma outros agentes (ex.: Copilot CLI), fora do escopo do tc.
 5. `tool_calls.alvo_ext` (extensão do arquivo junto do hash): **pendente de decisão**. Não implementar até decidir.
 6. ~~Numeração do `turno` e `seq` compartilhada~~ **Resolvido na T22** (ver 5): turno a partir de 1, turno 0 antes do primeiro prompt; `seq` compartilhada.
 7. Comando de shell na tela de sequência: hoje só aparece a classe (`teste`, `build`, `git`...). Mostrar o texto, lido do log na hora como no `tc sessao --comandos`, é decisão à parte.

@@ -24,3 +24,11 @@ Thumbs.db
 
 # referências clonadas por engano dentro do repo
 referencias/
+
+# tc web: banco em WAL e prints da revisão visual
+*.db-wal
+*.db-shm
+.playwright-mcp/
+tests/visual/node_modules/
+tests/visual/test-results/
+tests/visual/playwright-report/

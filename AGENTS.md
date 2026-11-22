@@ -53,6 +53,11 @@ Ele roda num notebook corporativo, com dados sensíveis. Por isso as regras abai
    (o painel do `tc painel`, a tela do `tc live` e a árvore do `tc sessao`). O `import rich` fica só nesse módulo, que o
    `cli.py` importa de forma preguiçosa; os demais comandos continuam só com a biblioteca padrão e, se o `rich` faltar, esses
    três avisam e caem em texto simples (`--simples`).
+   **Exceção de desenvolvimento, aprovada pelo dono do projeto em 22/11/2026 (T24):** Node e Playwright
+   (`@playwright/test`, versão fixa) podem ser usados **só como ferramenta de teste**, em `tests/visual/` (package.json
+   próprio), para a revisão visual do `tc web --demo`. Nada do pacote `token_controler` importa, chama ou depende de Node;
+   o `tc` continua rodando só com Python + biblioteca padrão (+ `rich` no `painel.py`). Os testes visuais só acessam
+   `127.0.0.1` e falham se a página pedir qualquer recurso de fora.
    Não adicione outras dependências sem nova aprovação explícita.
 4. **Nunca estimar tokens a partir do texto.** Sem contagem real, o valor fica `NULL` ou é marcado "sem dados".
 5. **Só leitura das fontes.** Nunca modificar, mover ou apagar os arquivos de log das ferramentas.
@@ -66,10 +71,16 @@ Ele roda num notebook corporativo, com dados sensíveis. Por isso as regras abai
 ```
 token_controler/
   cli.py              # comandos `tc` (argparse); textos em português
+  consultas.py        # consultas ao banco usadas pelo CLI, `--json`, `tc painel`, `tc live` e `tc web` (dicts prontos)
   painel.py           # `tc painel`, tela do `tc live` e árvore do `tc sessao` (única parte que usa `rich`)
   agora.py            # dados e texto simples da tela do `tc live` (só biblioteca padrão)
   detalhe.py          # dados e árvore neutra do `tc sessao` (só biblioteca padrão; reusa as regras de diagnostico.py)
   regras_erros.py     # categoria e exit code de um erro de tool (função pura; a mensagem nunca é gravada)
+  demo.py             # banco de demonstração FICTÍCIO e determinístico (`tc web --demo`, testes visuais)
+  web/
+    servidor.py       # `tc web`: http.server só em 127.0.0.1, só GET, Host checado, SQLite mode=ro, thread de ingest
+    telas.py          # monta o HTML a partir de consultas.py; todo valor passa por html.escape
+    modelos/          # base.html, hoje.html, fragmentos.html e estilo.css (sem JavaScript, sem recurso externo)
   db.py               # schema SQLite e conexão
   precos.py           # tabela de preços (USD por milhão de tokens)
   fontes/
@@ -81,6 +92,8 @@ token_controler/
   `ingerir(con, pasta=None, tudo=False, apelidos=None) -> dict` e grava no **schema único**
   (`chamadas`, `tool_calls`, `eventos`, `arquivos`), preenchendo a coluna `ferramenta`.
 - Os relatórios no `cli.py` não sabem de qual ferramenta veio o dado.
+- **Consulta nova vai para `consultas.py`**, não para o comando: as telas (CLI, `rich`, `tc web`) só formatam o que ela
+  devolve. Assim o `--json`, o painel e o navegador mostram os mesmos números.
 - Ingestão incremental: um arquivo só é reprocessado se `tamanho` ou `mtime` mudarem; ao reprocessar,
   apaga as linhas daquele arquivo e grava de novo.
 - Uma fonte só entra se tiver timestamp, ID de sessão, modelo e contagem de tokens (ou custo registrado).
