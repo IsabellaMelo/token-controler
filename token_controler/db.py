@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 from pathlib import Path
@@ -58,7 +59,10 @@ CREATE TABLE IF NOT EXISTS tool_calls (
     arquivo    TEXT NOT NULL,
     duracao_ms INTEGER,                   -- do tool_use ao tool_result; NULL = sem resultado ou intervalo inválido
     alvo_hash  TEXT,                      -- hash do caminho do arquivo lido/editado (nunca o caminho); NULL = n/a
-    subtipo    TEXT                       -- só para shell: teste, build, git, leitura, outro (nunca o comando)
+    subtipo    TEXT,                      -- só para shell: teste, build, git, leitura, outro (nunca o comando)
+    alvo_nome  TEXT,                      -- só o NOME do arquivo, sem pasta (T19, em teste; ver `tc limpar-nomes`); NULL = n/a
+    leitura_ini INTEGER,                  -- Read: linha inicial lida (1 sem offset); NULL = não é Read ou intervalo não gravado
+    leitura_qtd INTEGER                   -- Read: quantas linhas (limit); NULL com leitura_ini preenchido = até o fim
 );
 
 -- Linha do tempo mínima (prompts e atividade) para contar prompts e tempo ativo
@@ -67,7 +71,7 @@ CREATE TABLE IF NOT EXISTS eventos (
     sessao_id  TEXT NOT NULL,
     projeto    TEXT,
     ts         TEXT NOT NULL,
-    tipo       TEXT NOT NULL,             -- prompt, atividade
+    tipo       TEXT NOT NULL,             -- prompt, atividade, compactacao (só o horário)
     arquivo    TEXT NOT NULL,
     rotulo     TEXT                       -- só em prompts: 'debug' ou NULL (derivado do texto; o texto nunca é gravado)
 );
@@ -100,7 +104,7 @@ def conectar(caminho: Path | None = None) -> sqlite3.Connection:
 
 
 def _migrar(con: sqlite3.Connection) -> None:
-    """Acrescenta colunas novas em bancos antigos (custo, T08; linhas ilegíveis, T11; tools, T13)."""
+    """Acrescenta colunas novas em bancos antigos (custo, T08; linhas ilegíveis, T11; tools, T13 e T19)."""
     if "linhas_ruins" not in {r["name"] for r in con.execute("PRAGMA table_info(arquivos)")}:
         # arquivos lidos antes da T11 ficam NULL (não contado), nunca 0: `tc ingest --tudo` conta
         con.execute("ALTER TABLE arquivos ADD COLUMN linhas_ruins INTEGER")
@@ -108,8 +112,9 @@ def _migrar(con: sqlite3.Connection) -> None:
         # NULL até `tc ingest --tudo`; prompts de logs já apagados não têm como ser rotulados depois
         con.execute("ALTER TABLE eventos ADD COLUMN rotulo TEXT")
     colunas_tools = {r["name"] for r in con.execute("PRAGMA table_info(tool_calls)")}
-    # T13 e T14; NULL até `tc ingest --tudo`
-    for coluna, tipo in (("duracao_ms", "INTEGER"), ("alvo_hash", "TEXT"), ("subtipo", "TEXT")):
+    # T13, T14 e T19 (alvo_nome); NULL até `tc ingest --tudo`
+    for coluna, tipo in (("duracao_ms", "INTEGER"), ("alvo_hash", "TEXT"), ("subtipo", "TEXT"),
+                         ("alvo_nome", "TEXT"), ("leitura_ini", "INTEGER"), ("leitura_qtd", "INTEGER")):
         if coluna not in colunas_tools:
             con.execute(f"ALTER TABLE tool_calls ADD COLUMN {coluna} {tipo}")
     colunas = {r["name"] for r in con.execute("PRAGMA table_info(chamadas)")}
@@ -133,6 +138,51 @@ def gravar_modo(con: sqlite3.Connection, modo: str) -> None:
     if modo not in MODOS:
         raise ValueError(f"modo de custo inválido: {modo}")
     con.execute("INSERT OR REPLACE INTO config (chave, valor) VALUES ('modo_custo', ?)", (modo,))
+
+
+def arquivo_do_banco(con: sqlite3.Connection) -> Path | None:
+    """Arquivo do banco aberto em `con`; None para banco em memória."""
+    for r in con.execute("PRAGMA database_list"):
+        if r["name"] == "main" and r["file"]:
+            return Path(r["file"])
+    return None
+
+
+def _chave_ligada(con: sqlite3.Connection, chave: str) -> bool:
+    """Chave booleana do config.json ao lado do banco. Padrão: true; ausente, ilegível ou não booleana vale true."""
+    arquivo = arquivo_do_banco(con)
+    if arquivo is None:
+        return True
+    try:
+        valor = json.loads((arquivo.parent / "config.json").read_text(encoding="utf-8-sig")).get(chave, True)
+    except (OSError, ValueError, AttributeError):
+        return True
+    return valor if isinstance(valor, bool) else True
+
+
+def gravar_nome_arquivo(con: sqlite3.Connection) -> bool:
+    """Chave `gravar_nome_arquivo` (T19, nome do arquivo sem pasta)."""
+    return _chave_ligada(con, "gravar_nome_arquivo")
+
+
+def gravar_trecho_leitura(con: sqlite3.Connection) -> bool:
+    """Chave `gravar_trecho_leitura` (T19, linha inicial e quantidade de linhas de um Read)."""
+    return _chave_ligada(con, "gravar_trecho_leitura")
+
+
+def limpar_nomes(con: sqlite3.Connection) -> int:
+    """Apaga os nomes de arquivo gravados (T19). Devolve quantas linhas tinham nome."""
+    n = con.execute("UPDATE tool_calls SET alvo_nome = NULL WHERE alvo_nome IS NOT NULL").rowcount
+    con.commit()
+    return n
+
+
+def limpar_trechos(con: sqlite3.Connection) -> int:
+    """Apaga os trechos de leitura gravados (T19). Devolve quantas linhas tinham trecho."""
+    n = con.execute("""UPDATE tool_calls SET leitura_ini = NULL, leitura_qtd = NULL
+                       WHERE leitura_ini IS NOT NULL OR leitura_qtd IS NOT NULL""").rowcount
+    con.commit()
+    return n
 
 
 def apagar_arquivo(con: sqlite3.Connection, caminho: str) -> None:

@@ -166,6 +166,9 @@ CLI `tc` (comandos em português):
 | `tc tools` | uso e taxa de erro por tool | ✅ |
 | `tc live [--periodo] [--simples]` | painel visual (rich) atualizado sozinho: resumo, abas de período e uma grade de caixas; `--simples` mantém a tabela antiga | ✅ |
 | `tc diagnostico [--sessao] [--limite] [--json]` | sinais e recomendações, cada uma com a evidência | ✅ |
+| `tc sessao [id] [--comandos] [--json]` | detalhe de uma sessão em árvore (`rich.Tree`): prompts, tools, subagentes, pausas e ⚠ com motivo e custo (T19) | ✅ |
+| `tc limpar-nomes` | apaga os nomes de arquivo gravados em `tool_calls.alvo_nome` (T19, em teste) | ✅ |
+| `tc limpar-trechos` | apaga os trechos de leitura (`leitura_ini`, `leitura_qtd`) gravados (T19, em teste) | ✅ |
 | `tc comportamento [--json]` | categoria dos turnos, one-shot e custo por categoria | ✅ |
 | `tc qualidade [--ferramenta] [--json]` | confiança dos dados (linhas ruins, sem preço, sem tokens, origem do custo) | ✅ (nível de detalhe entra com a T09) |
 | `--json` em todos | análise no pandas | Fase 1.5 |
@@ -179,7 +182,11 @@ CLI `tc` (comandos em português):
 ## 9. Privacidade e segurança
 
 - Nenhum texto de conversa vai para o banco, inclusive no Copilot do trabalho.
-- Hash, não caminho, quando for preciso identificar arquivos (one-shot, leituras repetidas).
+- Hash, não caminho, quando for preciso identificar arquivos (one-shot, leituras repetidas). Exceção em teste (T19, 22/11/2026):
+  o **nome** do arquivo, sem pasta, em `tool_calls.alvo_nome` (desligável por `gravar_nome_arquivo`; `tc limpar-nomes` apaga).
+  Comando de shell só na tela, com `tc sessao --comandos`, lido do log na hora e nunca gravado.
+  Segunda exceção em teste (T19, 22/11/2026): nos `Read`, os dois números do trecho lido (`offset` e `limit`) em
+  `leitura_ini`/`leitura_qtd`, para não confundir ler outro trecho com reler (desligável por `gravar_trecho_leitura`; `tc limpar-trechos` apaga).
 - Nenhuma chamada de rede, nem para buscar preços.
 - O banco é um arquivo local. Não sincronizar com nuvem pessoal nem commitar.
 - Antes de usar no trabalho, confirmar com a área de segurança. A ferramenta só lê arquivos que já existem no notebook.

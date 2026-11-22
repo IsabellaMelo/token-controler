@@ -88,6 +88,29 @@ Os caminhos citados abaixo são pontos de partida; se não existirem, procure no
   Pressão de contexto fica desligada sem `janelas_contexto`. Todos os limites são propostas iniciais para a T17.
   Referência: **agenttrace**, detecção de retry loops, pausas longas, sessões travadas, leituras repetidas, pressão de contexto, tools lentas e as recomendações. Anotar no plano os limites que ele usa.
 
+- [x] **T19 · `tc sessao <id>`**: detalhe de uma sessão em árvore (`rich.Tree`) para entender o que aconteceu dentro dela.
+  Etapa 1 (privacidade, decisão do dono em 22/11/2026, em modo de teste): regra 1 do `AGENTS.md` passa a permitir o NOME do arquivo
+  tocado por uma tool, sem a pasta, em `tool_calls.alvo_nome` (continua proibido caminho completo, comando de shell, argumentos e conteúdo;
+  o `alvo_hash` do caminho completo fica). Chave `gravar_nome_arquivo` (padrão `true`) e `tc limpar-nomes` para voltar atrás.
+  Etapa 2: árvore cronológica (prompt → tools → subagentes aninhados, pausas entre prompts) com ⚠ para falha repetida, releitura
+  desnecessária (sem edição nem compactação entre as leituras), pausa longa e cache baixo/re-criação, cada um com motivo e custo,
+  mais sugestões no fim. Reaproveita as regras e os limites do `tc diagnostico`. Comandos de shell só com `--comandos`, lidos do log
+  na hora e nunca gravados.
+  Aceite: testes com fixture sintética (incluindo releitura legítima e desnecessária), valor gravado sem separador de pasta, banco sem
+  caminho completo, `pytest` passando e README atualizado.
+  Referência: **agenttrace** (leituras repetidas, retry loops, pausas), já usada na T16; os limites são os mesmos.
+  Feito: `detalhe.py` (dados e árvore neutra, só biblioteca padrão) e `painel.renderizar_sessao` (rich, o único módulo que o importa).
+  `diagnostico.py` ganhou funções reutilizáveis (`corridas_de_falhas`, `pausas_longas`, `recriacoes_de_cache`, `impacto_recriacao`)
+  sem mudar o comportamento dos sinais. O banco passou a ter o evento `compactacao` (só o horário, de `system/compact_boundary`) e o
+  resumo de compactação deixou de contar como prompt. Re-criação fora de pausa exige a leitura de cache despencar
+  (`recriacao_perda_pct`); sem isso, qualquer leitura pesada (cache_write > 10k) parecia re-criação (46 falsos positivos em 9 sessões reais).
+  Terceira exceção da regra 1 (22/11/2026, em teste): `Read` grava `leitura_ini`/`leitura_qtd` (offset e limit, só inteiros;
+  `gravar_trecho_leitura`, `tc limpar-trechos`). A releitura só vale com linhas sobrepostas; sem o trecho gravado (sessão antiga),
+  é "possível". Com logs reais, as 4 releituras falsas (trechos diferentes de um arquivo grande) sumiram.
+  Limite que sobra: alteração por comando de shell não é vista; por isso imagens (`releitura_ignora_extensoes`) ficam fora da regra.
+  Releitura só conta com `releitura_min_sobreposicao` (25%) ou mais do trecho lido agora (3 linhas repetidas de 80 eram ruído);
+  base de um `Read` sem `limit` = 2000 linhas, o padrão do Read.
+
 ## Fase 5 — Calibração
 - [ ] **T17 · Ajustar limites** do diagnóstico depois de 2 a 3 semanas de uso real.
   Referência: **agenttrace**, baselines locais e checagem de regressão.

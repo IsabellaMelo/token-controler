@@ -38,6 +38,11 @@ tc resumo --por sessao --hoje
 tc sessoes                     # duração, tempo ativo, prompts, chamadas, custo
 tc tools --projeto rpps        # uso e taxa de erro por tool
 tc diagnostico                 # onde as sessões ficaram caras ou lentas, com a evidência
+tc sessao                      # a sessão mais recente em árvore: prompts, tools, subagentes, pausas e ⚠
+tc sessao a1b2c3d4             # uma sessão específica (o começo do ID, como em `tc sessoes`)
+tc sessao a1b2 --comandos      # inclui os comandos de shell, lidos agora do log (nunca gravados)
+tc limpar-nomes                # apaga os nomes de arquivo gravados no banco (ver "Detalhe de uma sessão")
+tc limpar-trechos              # apaga os trechos de leitura (linha inicial e quantidade) gravados no banco
 tc comportamento               # categoria dos turnos, one-shot e custo por categoria
 tc qualidade                   # confiança dos dados: linhas ilegíveis, sem preço, sem tokens
 tc live                        # painel visual que se atualiza sozinho (teclas 1-5 mudam o período, q sai)
@@ -171,6 +176,8 @@ Em `janelas_contexto`, a chave é o começo do nome do modelo e o **prefixo mais
 ganha de `claude-sonnet-4`). Os números do exemplo são ilustrativos: confira a janela de cada modelo na página
 oficial antes de usar.
 
+`recriacao_perda_pct` (padrão 0,5) só é usada pelo `tc sessao`, para separar "cache perdido" de "conteúdo novo grande".
+
 Chave desconhecida ou valor inválido é ignorado com um aviso. Todas as chaves e padrões estão em `LIMITES_PADRAO`,
 em `token_controler/diagnostico.py`. Os sinais usam só o que já está no banco; nada é estimado pelo texto.
 
@@ -204,6 +211,85 @@ foge de 0 a 1 h) e `alvo_hash`, um hash do caminho do arquivo lido ou editado (s
 o que permite contar leituras repetidas e retrabalho. O hash leva um salt aleatório do banco: impede tabelas
 pré-calculadas, mas não é irreversível para quem tem o banco. Linhas gravadas antes dessa versão ficam `NULL`
 até um `tc ingest --tudo`. Tools que esperam você (como `AskUserQuestion`) medem o seu tempo, não o da tool.
+
+### Detalhe de uma sessão (`tc sessao`)
+
+**Como abrir a árvore:** `tc sessao` (a sessão mais recente) ou `tc sessao <id>`, com o ID inteiro ou só o começo dele,
+como aparece em `tc sessoes`. Funciona no terminal do VS Code; sem o `rich`, a mesma árvore sai em texto simples.
+`--json` imprime os mesmos dados como JSON (sem comandos de shell).
+
+```
+Sessão a1b2c3d4 · rpps
+duração 15min20s   custo $0.87   categoria Exploração
+3 prompts · 21 chamadas · 18 tools (6 com erro) · cache 74% · 1 compactação(ões)
+
+Linha do tempo
+├── Prompt 1 · 10:00:00 · Delegação · 15 tools · $0.21
+│   ├── Read  analise.py · arquivo inteiro  ✓  $0.10  1.0s
+│   ├── Read  analise.py · arquivo inteiro  ✓  $0.0079  1.0s  ⚠ releitura de arquivo inteiro (100% do trecho lido; já lido às 10:00:05, sem edição nem compactação)
+│   ├── Read  dados.py · linhas 1–100  ✓  $0.01  30ms
+│   ├── Read  dados.py · linhas 101–200  ✓  $0.01  28ms
+│   ├── Read  dados.py · linhas 150–249  ✓  $0.01  27ms  ⚠ releitura de linhas 150–200 (51% do trecho lido; já lido às 10:15:10, sem edição nem compactação)
+│   ├── Bash  [teste]  ✗  $0.0062  3.0s  ⚠ falha repetida 1/3
+│   └── Agent  ✓  $0.0063  30s (espera)
+│       └── subagente  2 tools · 3 chamadas · $0.03 · 15s
+│           └── Read  analise.py  ✓  $0.03  1.0s
+├── ⏸ pausa de 9min20s ⚠ cache expirado, 48,000 tokens regravados · $0.23 a mais que ler do cache
+└── Prompt 2 · 10:12:00 · ...
+```
+
+Cada prompt é um galho (só o horário e a categoria: **o texto do prompt nunca aparece**), com as tools chamadas (nome da
+tool, arquivo, ✓ ok / ✗ erro, custo e tempo), os subagentes aninhados na chamada `Agent`/`Task` que os disparou e a
+pausa entre prompts. No topo: projeto, duração, custo e categoria. No fim, os **⚠ problemas**, cada um com o motivo e o
+custo envolvido, e sugestões curtas para a sessão custar menos. Os problemas reaproveitam as regras e os limites do
+`tc diagnostico` (os mesmos de `config.json`, chave `diagnostico`):
+
+| ⚠ | Quando | Custo envolvido |
+|---|---|---|
+| Falha repetida | a **mesma tool no mesmo alvo** falha `loop_min` (3) vezes seguidas; 5+ é gravidade alta. (O `tc diagnostico` conta só por tool, sem o alvo) | custo das chamadas que pediram as tentativas |
+| Releitura desnecessária | um trecho do arquivo (por hash) lido de novo, na mesma thread, **sem edição nele nem compactação** entre as leituras, repetindo **25% ou mais** do trecho que acabou de ser lido (`releitura_min_sobreposicao`). Ler as linhas 1–100 e depois 101–200 não é releitura; 150–249 depois de 101–200 repete 51 de 100 linhas (51%) e é. Leituras anteriores pequenas somam (união das linhas); 3 linhas repetidas num trecho de 80 (3,75%) não contam. Sem `limit`, o `Read` lê no máximo 2000 linhas, e é essa a base. Releitura depois de um Edit/Write com sucesso ou depois de `/compact` é normal e não conta | custo das chamadas que pediram as releituras |
+| Pausa longa | mais de `pausa_s` (5 min) sem atividade **e** a chamada seguinte regravou mais de 10 mil tokens de cache (o cache expirou). Se o cache foi só lido, a pausa aparece apagada, sem ⚠, com a nota "cache não regravado" (comum com cache de 1 h) | gravar − ler do cache, pelo preço do modelo (limite superior) |
+| Cache baixo | taxa de cache abaixo do mínimo (80%) em sessão com mais de 10 chamadas | custo das gravações de cache da sessão |
+| Re-criação de cache | chamada que grava mais de 10 mil tokens de cache **e** quase não leu o cache (leitura abaixo de `recriacao_perda_pct`, 50%, do contexto anterior), fora de pausa e de compactação | gravar − ler, pelo preço do modelo |
+
+Como ler os números:
+
+- **Custo de uma tool** = custo da chamada do modelo que a pediu, dividido igualmente entre as tools pedidas juntas.
+  O que a tool devolveu entra no custo da chamada seguinte. Nada é estimado pelo texto: o custo do prompt é a soma das
+  chamadas dele (inclusive as dos subagentes), e a soma dos prompts fecha com o custo da sessão.
+- **Trecho lido (`offset`/`limit`)**: a tool `Read` pode ler só um pedaço do arquivo. Por isso o banco guarda, só nos `Read`,
+  os dois números do trecho (`leitura_ini`, a linha inicial, e `leitura_qtd`, quantas linhas; sem `limit`, vai até o fim),
+  e a releitura só vale se as faixas de linhas se sobrepõem. Antes disso, as releituras de um arquivo grande lido por
+  partes apareciam como falsos alertas (4 numa sessão real, trechos 186, 340, 660 e 805 do mesmo arquivo). Sessões
+  ingeridas antes dessa coluna não têm o trecho: aparece "**possível** releitura" (gravidade baixa) e o `tc ingest --tudo`
+  resolve enquanto o log existir. Leituras com `pages` (PDF) ficam sem trecho. O `tc` ainda **não vê mudanças feitas por
+  comandos de shell**. Por isso **imagens ficam fora da regra** (`.jpg`, `.png`, `.gif`, `.webp`, `.bmp`, `.tif`, `.heic`,
+  `.avif`, `.ico`): costumam ser recortadas ou ampliadas por um script e lidas de novo, já com outro conteúdo. A lista é
+  a chave `releitura_ignora_extensoes` (em `diagnostico`, no `config.json`; `[]` desliga a exceção) e depende do nome do
+  arquivo gravado: com `gravar_nome_arquivo` desligado, ou em sessões sem nome, a extensão não é conhecida e o arquivo
+  é checado. Trate a releitura como um indício.
+- Sessões ingeridas antes do nome do arquivo ser gravado mostram o **hash curto** (`#a1b2c3d4`) no lugar do nome;
+  `tc ingest --tudo` preenche, mas só enquanto o log original existir. Sessão inexistente ou sem tools é dita com clareza.
+
+**Nome do arquivo (teste, decisão do dono em 22/11/2026).** A coluna `tool_calls.alvo_nome` guarda só o **nome** do arquivo
+(`analise.py`), sem pasta: separadores `/` e `\` são removidos e o tamanho é limitado a 80 caracteres. Caminho completo,
+comando de shell, argumentos e conteúdo continuam proibidos; o `alvo_hash` do caminho completo fica, e é ele que separa
+`src\analise.py` de `tests\analise.py`. Para desligar, ponha em `~/.token-controler/config.json`:
+
+```json
+{ "gravar_nome_arquivo": false }
+```
+
+e rode `tc limpar-nomes` para apagar o que já foi gravado (ele faz `VACUUM`, então os nomes somem do arquivo do banco).
+O comando avisa se a gravação ainda estiver ligada: sem desligar a chave, o próximo `tc ingest` volta a gravar.
+
+**Trecho lido (teste, terceira exceção da regra 1, 22/11/2026).** Só nos `Read`, `tool_calls.leitura_ini` e `leitura_qtd` guardam
+`offset` e `limit` como números inteiros (nunca outro argumento, texto ou caminho). Para desligar:
+`{ "gravar_trecho_leitura": false }` no mesmo `config.json`, e `tc limpar-trechos` apaga o que já foi gravado.
+Para preencher sessões antigas, `tc ingest --tudo` (só enquanto o log existir).
+
+**Comandos de shell** não aparecem por padrão. Com `--comandos`, são lidos **na hora, do log original**, em memória, e
+nunca gravados (com o log já apagado, o nó mostra "comando indisponível"). `--comandos` não vale com `--json`.
 
 ### Qualidade dos dados
 
@@ -241,7 +327,7 @@ Bancos criados antes dessa versão são migrados sozinhos na primeira execução
 
 ## Schema
 
-`chamadas`, `tool_calls`, `eventos`, `arquivos` e `config` (modo de custo). As quatro primeiras têm a coluna `ferramenta`, para que
+`chamadas`, `tool_calls` (com `alvo_hash` e, em teste, `alvo_nome`, `leitura_ini` e `leitura_qtd`), `eventos` (`prompt`, `atividade` e `compactacao`, só com o horário), `arquivos` e `config` (modo de custo). As quatro primeiras têm a coluna `ferramenta`, para que
 novas fontes (Copilot, API) entrem no mesmo banco sem mudar os relatórios.
 Dá para consultar direto: `sqlite3 ~/.token-controler/tracker.db`.
 

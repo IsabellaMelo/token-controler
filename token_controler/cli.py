@@ -9,7 +9,7 @@ import time
 from datetime import date, datetime
 from pathlib import Path
 
-from . import comportamento, custo, db, diagnostico, qualidade
+from . import comportamento, custo, db, detalhe, diagnostico, qualidade
 from .formato import fmt_dur, fmt_pct, fmt_tokens, fmt_usd
 from .fontes import claude_code
 
@@ -350,6 +350,61 @@ def cmd_diagnostico(con, args) -> None:
     print("Os limites são propostas iniciais, ajustáveis em config.json (chave \"diagnostico\").")
 
 
+def cmd_sessao(con, args) -> None:
+    """Detalhe de uma sessão em árvore (T19). Sem ID, a sessão mais recente."""
+    if args.json and args.comandos:
+        sys.exit("--comandos só vale na tela: comandos de shell nunca saem em JSON.")
+    limites, avisos = diagnostico.carregar_limites(diagnostico.caminho_config(args.db))
+    for aviso in avisos:
+        print(aviso, file=sys.stderr)
+    if args.id:
+        ids = diagnostico.resolver_sessao(con, args.id)
+        if not ids:
+            sys.exit(f"sessão '{args.id}' não encontrada. Rode `tc sessoes` para ver os IDs (use os primeiros caracteres).")
+        if len(ids) > 1:
+            lista = ", ".join(sorted(ids)[:5])
+            sys.exit(f"sessão '{args.id}' ambígua ({len(ids)} sessões começam assim: {lista}...). Use mais caracteres.")
+        sessao_id = ids[0]
+    else:
+        sessao_id = detalhe.ultima_sessao(con)
+        if sessao_id is None:
+            sys.exit("Nenhuma sessão no banco: rode `tc ingest` primeiro.")
+    dados = detalhe.analisar(con, sessao_id, limites)
+    if args.json:
+        emitir_json(dados)
+        return
+    comandos = detalhe.comandos_da_sessao(con, sessao_id) if args.comandos else None
+    visao = detalhe.montar(dados, comandos)
+    try:
+        from . import painel  # o rich só é carregado aqui; sem ele, a mesma árvore sai em texto simples
+    except ImportError:
+        print("O pacote rich não está instalado: mostrando a árvore em texto simples (`pip install -e .` instala o rich).",
+              file=sys.stderr)
+        print(detalhe.em_texto(visao))
+        return
+    painel.imprimir_sessao(visao)
+
+
+def cmd_limpar_nomes(con, args) -> None:
+    """Apaga os nomes de arquivo gravados em tool_calls.alvo_nome (T19, em teste)."""
+    n = db.limpar_nomes(con)
+    con.execute("VACUUM")  # sem isso, os nomes apagados continuariam nas páginas livres do arquivo do banco
+    print(f"{n} nome(s) de arquivo apagado(s) do banco (coluna alvo_nome). O alvo_hash continua.")
+    if db.gravar_nome_arquivo(con):
+        print('Atenção: a gravação de nomes continua ligada. Para não gravar mais, coloque {"gravar_nome_arquivo": false} '
+              "no config.json (ao lado do banco); senão o próximo `tc ingest` volta a gravar os nomes.")
+
+
+def cmd_limpar_trechos(con, args) -> None:
+    """Apaga os trechos de leitura gravados em tool_calls.leitura_ini/leitura_qtd (T19, em teste)."""
+    n = db.limpar_trechos(con)
+    con.execute("VACUUM")
+    print(f"{n} trecho(s) de leitura apagado(s) do banco (colunas leitura_ini e leitura_qtd).")
+    if db.gravar_trecho_leitura(con):
+        print('Atenção: a gravação de trechos continua ligada. Para não gravar mais, coloque {"gravar_trecho_leitura": false} '
+              "no config.json (ao lado do banco); senão o próximo `tc ingest` volta a gravar os trechos.")
+
+
 def cmd_qualidade(con, args) -> None:
     dados = qualidade.coletar(con, args.ferramenta)
     if args.json:
@@ -458,6 +513,18 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--sessao", help="só esta sessão (prefixo do ID, como em `tc sessoes`)")
     p.add_argument("--limite", type=int, default=20, help="máximo de recomendações (0 = todas); padrão 20")
     p.set_defaults(func=cmd_diagnostico)
+
+    p = com_json(sub.add_parser("sessao", help="detalhe de uma sessão em árvore: prompts, tools, subagentes, pausas e ⚠"))
+    p.add_argument("id", nargs="?", help="ID da sessão ou só o começo dele, como em `tc sessoes` (sem ID: a mais recente)")
+    p.add_argument("--comandos", action="store_true",
+                   help="mostra os comandos de shell, lidos agora do log original (em memória, nunca gravados)")
+    p.set_defaults(func=cmd_sessao)
+
+    p = sub.add_parser("limpar-nomes", help="apaga os nomes de arquivo gravados (coluna alvo_nome); o alvo_hash fica")
+    p.set_defaults(func=cmd_limpar_nomes)
+
+    p = sub.add_parser("limpar-trechos", help="apaga os trechos de leitura gravados (leitura_ini e leitura_qtd)")
+    p.set_defaults(func=cmd_limpar_trechos)
 
     p = com_json(com_filtros(sub.add_parser("comportamento", help="categoria dos turnos, one-shot e custo por categoria")))
     p.set_defaults(func=cmd_comportamento)

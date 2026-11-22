@@ -26,6 +26,7 @@ LIMITES_PADRAO: dict = {
     "cache_min_chamadas": 10,       #   ...só em sessões com mais chamadas que isso (design §6.3)
     "recriacao_cache_min_tokens": 10_000,   # re-criação: gravação de cache acima disso numa chamada (design §6.3)
     "recriacoes_media": 3,          #   ...severidade média a partir de tantas re-criações
+    "recriacao_perda_pct": 0.50,    #   ...fora de pausa só conta se a leitura de cache caiu abaixo disso do contexto anterior (T19)
     "pausa_s": 300,                 # pausa longa: intervalo entre eventos (cache de 5 min expira) (design §6.3)
     "pausas_media": 3,              #   ...severidade média a partir de tantas pausas
     "loop_min": 3,                  # loop de retry: a mesma tool falha tantas vezes seguidas (design §6.3; AgentTrace: 3)
@@ -41,6 +42,9 @@ LIMITES_PADRAO: dict = {
     "custo_alto_usd": 10.0,         #   ...e severidade alta a partir desse custo absoluto (AgentTrace: US$ 10)
     "contexto_pct": 0.80,           # pressão de contexto: input total da chamada acima dessa fração da janela
     "contexto_pct_alta": 0.95,      #   ...e severidade alta acima dessa
+    "releitura_ignora_extensoes": [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tif", ".tiff", ".heic", ".avif", ".ico"],
+                                    # `tc sessao`: imagens não entram na releitura (costumam ser regeneradas por script, que o `tc` não vê)
+    "releitura_min_sobreposicao": 0.25,  # `tc sessao`: releitura só conta se repete esta fração (ou mais) do trecho lido agora
     "janelas_contexto": {},         # {"prefixo-do-modelo": tokens}; vazio = sinal desligado (nenhuma tabela é presumida)
 }
 
@@ -156,24 +160,52 @@ def sinal_cache_baixo(s: dict, lim: dict) -> list[dict]:
                  {"taxa": taxa, "chamadas": len(chamadas)})]
 
 
-def sinal_recriacao_cache(s: dict, lim: dict) -> list[dict]:
-    """Chamada da thread principal que grava muito cache logo depois de uma pausa maior que o TTL."""
-    principais = [c for c in s["chamadas"] if not c["subagente"] and not c["erro_api"]]
-    n, tokens, impacto, sem_preco = 0, 0, 0.0, 0
+def impacto_recriacao(c: dict) -> float | None:
+    """US$ a mais que uma chamada pagou por regravar o cache em vez de lê-lo (limite superior); None sem preço."""
+    gravado = c["cache_write_5m"] + c["cache_write_1h"]
+    preco = achar_preco(c["modelo"], c["input_tokens"] + gravado + c["cache_read"])
+    if preco is None:
+        return None
+    # se o cache não tivesse expirado, esses tokens seriam lidos, não gravados
+    return (c["cache_write_5m"] * (preco[1] - preco[3]) + c["cache_write_1h"] * (preco[2] - preco[3])) / 1e6
+
+
+def recriacoes_de_cache(chamadas: list[dict], lim: dict, compactacoes: list[str] = ()) -> list[dict]:
+    """Chamadas da thread principal que gravam mais de `recriacao_cache_min_tokens` de cache no meio da sessão.
+
+    Cada item: chamada, tokens gravados, `pausa_s` desde a chamada anterior, `apos_pausa` (pausa maior que o TTL),
+    `apos_compactacao` (houve compactação entre as duas chamadas, caso em que regravar é esperado), `prefixo_perdido`
+    (a leitura de cache caiu abaixo de `recriacao_perda_pct` do contexto da chamada anterior: o cache não foi
+    aproveitado, em vez de só ter entrado conteúdo novo grande) e o impacto em US$.
+    A primeira chamada da sessão nunca entra: gravar o cache pela primeira vez é normal.
+    """
+    principais = [c for c in chamadas if not c["subagente"] and not c["erro_api"]]
+    saida = []
     for anterior, c in zip(principais, principais[1:]):
-        t0, t1 = _t(anterior["ts"]), _t(c["ts"])
         gravado = c["cache_write_5m"] + c["cache_write_1h"]
-        if not t0 or not t1 or (t1 - t0).total_seconds() <= lim["pausa_s"]:
-            continue
         if gravado <= lim["recriacao_cache_min_tokens"]:
             continue
-        n += 1
-        tokens += gravado
-        preco = achar_preco(c["modelo"], c["input_tokens"] + gravado + c["cache_read"])
-        if preco is None:
-            sem_preco += 1
-        else:  # se o cache não tivesse expirado, esses tokens seriam lidos, não gravados (limite superior)
-            impacto += (c["cache_write_5m"] * (preco[1] - preco[3]) + c["cache_write_1h"] * (preco[2] - preco[3])) / 1e6
+        t0, t1 = _t(anterior["ts"]), _t(c["ts"])
+        pausa = (t1 - t0).total_seconds() if t0 and t1 else None
+        contexto_anterior = (anterior["input_tokens"] + anterior["cache_write_5m"] + anterior["cache_write_1h"]
+                             + anterior["cache_read"])
+        saida.append({
+            "chamada": c, "gravado": gravado, "pausa_s": pausa,
+            "prefixo_perdido": bool(contexto_anterior) and c["cache_read"] < lim["recriacao_perda_pct"] * contexto_anterior,
+            "apos_pausa": pausa is not None and pausa > lim["pausa_s"],
+            "apos_compactacao": any(anterior["ts"] <= k <= c["ts"] for k in compactacoes),
+            "impacto_usd": impacto_recriacao(c),
+        })
+    return saida
+
+
+def sinal_recriacao_cache(s: dict, lim: dict) -> list[dict]:
+    """Chamada da thread principal que grava muito cache logo depois de uma pausa maior que o TTL."""
+    itens = [r for r in recriacoes_de_cache(s["chamadas"], lim) if r["apos_pausa"]]
+    n = len(itens)
+    tokens = sum(r["gravado"] for r in itens)
+    sem_preco = sum(r["impacto_usd"] is None for r in itens)
+    impacto = sum(r["impacto_usd"] or 0.0 for r in itens)
     if not n:
         return []
     sev = "media" if n >= lim["recriacoes_media"] else "baixa"
@@ -185,9 +217,18 @@ def sinal_recriacao_cache(s: dict, lim: dict) -> list[dict]:
                  impacto if (n - sem_preco) else None)]
 
 
+def pausas_longas(eventos: list[str], lim: dict) -> list[tuple[str, str, float]]:
+    """Intervalos sem atividade maiores que `pausa_s`, como (início, fim, segundos). `eventos` são horários ISO em ordem."""
+    saida = []
+    for a, b in zip(eventos, eventos[1:]):
+        t0, t1 = _t(a), _t(b)
+        if t0 and t1 and (t1 - t0).total_seconds() > lim["pausa_s"]:
+            saida.append((a, b, (t1 - t0).total_seconds()))
+    return saida
+
+
 def sinal_pausa_longa(s: dict, lim: dict) -> list[dict]:
-    tempos = [t for t in (_t(ts) for ts in s["eventos"]) if t]
-    pausas = [(b - a).total_seconds() for a, b in zip(tempos, tempos[1:]) if (b - a).total_seconds() > lim["pausa_s"]]
+    pausas = [segundos for _, _, segundos in pausas_longas(s["eventos"], lim)]
     if not pausas:
         return []
     sev = "media" if len(pausas) >= lim["pausas_media"] else "baixa"
@@ -196,28 +237,40 @@ def sinal_pausa_longa(s: dict, lim: dict) -> list[dict]:
                  {"pausas": len(pausas), "maior_s": max(pausas), "total_s": sum(pausas)})]
 
 
+def corridas_de_falhas(tools: list[dict], lim: dict, por_alvo: bool = False) -> list[dict]:
+    """Corridas de `loop_min` ou mais falhas seguidas da mesma tool, na sequência dada (uma thread só).
+
+    Com `por_alvo`, a corrida também exige o mesmo `alvo_hash` (a tool falhando no mesmo arquivo; sem alvo conta como
+    o mesmo). Qualquer chamada que não seja erro corta a corrida. Cada item: tool, alvo, tamanho e as chamadas.
+    """
+    corridas: list[dict] = []
+    atual: list[dict] = []
+
+    def fechar() -> None:
+        if len(atual) >= lim["loop_min"]:
+            corridas.append({"tool": atual[0]["tool"], "alvo": atual[0].get("alvo_hash"), "tamanho": len(atual),
+                             "chamadas": list(atual)})
+
+    for t in tools:
+        if t["erro"] != 1:
+            fechar()
+            atual = []
+        elif atual and t["tool"] == atual[0]["tool"] and (not por_alvo or t.get("alvo_hash") == atual[0].get("alvo_hash")):
+            atual.append(t)
+        else:
+            fechar()
+            atual = [t]
+    fechar()
+    return corridas
+
+
 def sinal_loop_retry(s: dict, lim: dict) -> list[dict]:
     """Corrida de `loop_min` ou mais falhas seguidas da mesma tool, na sequência da thread principal."""
-    corridas: list[tuple[str, int]] = []
-    atual, tamanho = None, 0
-    for t in s["tools"]:
-        if t["subagente"]:
-            continue
-        if t["erro"] == 1 and t["tool"] == atual:
-            tamanho += 1
-        elif t["erro"] == 1:
-            if tamanho >= lim["loop_min"]:
-                corridas.append((atual, tamanho))
-            atual, tamanho = t["tool"], 1
-        else:
-            if tamanho >= lim["loop_min"]:
-                corridas.append((atual, tamanho))
-            atual, tamanho = None, 0
-    if tamanho >= lim["loop_min"]:
-        corridas.append((atual, tamanho))
+    corridas = corridas_de_falhas([t for t in s["tools"] if not t["subagente"]], lim)
     if not corridas:
         return []
-    tool, pior = max(corridas, key=lambda c: c[1])
+    pior = max(corridas, key=lambda c: c["tamanho"])
+    tool, pior = pior["tool"], pior["tamanho"]
     sev = "alta" if pior >= lim["loop_alta"] else "media"
     return [_rec(s["id"], s["projeto"], "loop_retry", sev,
                  f"{tool} falhou {pior} vezes seguidas ({len(corridas)} loop(s) na sessão)",
@@ -313,7 +366,7 @@ def _em_lotes(itens: list[str], tamanho: int = 500):
         yield itens[i:i + tamanho]
 
 
-def _carregar_sessoes(con: sqlite3.Connection, ids: list[str]) -> list[dict]:
+def carregar_sessoes(con: sqlite3.Connection, ids: list[str]) -> list[dict]:
     sessoes: dict[str, dict] = {i: {"id": i, "projeto": None, "chamadas": [], "tools": [], "eventos": []} for i in ids}
     for lote in _em_lotes(ids):
         marcas = ",".join("?" * len(lote))
@@ -355,7 +408,7 @@ def diagnosticar(con: sqlite3.Connection, limites: dict, sessoes: list[str]) -> 
     p95 = _p95_das_tools(con, limites)
     p90 = _p90_dos_projetos(con, limites)
     saida = []
-    for s in _carregar_sessoes(con, sessoes):
+    for s in carregar_sessoes(con, sessoes):
         recs = (sinal_cache_baixo(s, limites) + sinal_recriacao_cache(s, limites) + sinal_pausa_longa(s, limites)
                 + sinal_loop_retry(s, limites) + sinal_leitura_repetida(s, limites)
                 + sinal_tool_lenta(s, limites, p95) + sinal_sessao_cara(s, limites, p90)

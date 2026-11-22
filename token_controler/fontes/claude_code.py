@@ -12,10 +12,10 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..alvo import alvo_da_tool, sal_do_banco
+from ..alvo import alvo_da_tool, nome_da_tool, sal_do_banco, trecho_da_leitura
 from ..comandos import TOOLS_SHELL, classificar_comando
 from ..custo import custo_registrado_valido, decidir
-from ..db import apagar_arquivo, ler_modo
+from ..db import apagar_arquivo, gravar_nome_arquivo, gravar_trecho_leitura, ler_modo
 from ..rotulos import rotular_prompt
 
 FERRAMENTA = "claude_code"
@@ -47,8 +47,8 @@ def _int(v) -> int:
 
 
 def _eh_prompt(linha: dict) -> bool:
-    """Mensagem digitada pela pessoa (não resultado de tool, não meta, não subagente)."""
-    if linha.get("type") != "user" or linha.get("isMeta") or linha.get("isSidechain"):
+    """Mensagem digitada pela pessoa (não resultado de tool, não meta, não subagente, não resumo de compactação)."""
+    if linha.get("type") != "user" or linha.get("isMeta") or linha.get("isSidechain") or linha.get("isCompactSummary"):
         return False
     conteudo = (linha.get("message") or {}).get("content")
     if isinstance(conteudo, str):
@@ -90,8 +90,44 @@ def _subtipo(bloco: dict) -> str | None:
     return classificar_comando(entrada.get("command") if isinstance(entrada, dict) else None)
 
 
-def processar_arquivo(con: sqlite3.Connection, arquivo: Path, apelidos: dict[str, str]) -> dict:
+def comandos_do_log(arquivo: Path, ids: set[str]) -> dict[str, str]:
+    """Comandos de shell dos `tool_use_id` dados, lidos do log original SÓ EM MEMÓRIA (T19, `tc sessao --comandos`).
+
+    O banco nunca recebe esse texto: quem chama só o mostra na tela. Log que não existe mais ou ilegível devolve {}.
+    """
+    achados: dict[str, str] = {}
+    try:
+        with arquivo.open("r", encoding="utf-8", errors="replace") as f:
+            for bruta in f:
+                if "tool_use" not in bruta or not any(i in bruta for i in ids):
+                    continue
+                try:
+                    linha = json.loads(bruta)
+                except json.JSONDecodeError:
+                    continue
+                msg = linha.get("message") if isinstance(linha, dict) else None
+                conteudo = msg.get("content") if isinstance(msg, dict) else None
+                for b in conteudo if isinstance(conteudo, list) else []:
+                    if not (isinstance(b, dict) and b.get("type") == "tool_use" and b.get("id") in ids
+                            and b.get("name") in TOOLS_SHELL):
+                        continue
+                    entrada = b.get("input")
+                    comando = entrada.get("command") if isinstance(entrada, dict) else None
+                    if isinstance(comando, str):
+                        achados[b["id"]] = comando
+    except OSError:
+        return {}
+    return achados
+
+
+def processar_arquivo(con: sqlite3.Connection, arquivo: Path, apelidos: dict[str, str],
+                      gravar_nomes: bool | None = None, gravar_trechos: bool | None = None) -> dict:
+    """Lê um log e grava no banco. `gravar_nomes` e `gravar_trechos` (T19): None = chaves do config.json."""
     caminho = str(arquivo)
+    if gravar_nomes is None:
+        gravar_nomes = gravar_nome_arquivo(con)
+    if gravar_trechos is None:
+        gravar_trechos = gravar_trecho_leitura(con)
     eh_subagente_arquivo = "subagents" in arquivo.parts
     sal = sal_do_banco(con)
 
@@ -125,6 +161,9 @@ def processar_arquivo(con: sqlite3.Connection, arquivo: Path, apelidos: dict[str
 
             if tipo in ("user", "assistant"):
                 eventos.append((FERRAMENTA, sessao, projeto, ts, "atividade", caminho, None))
+            if tipo == "system" and linha.get("subtype") == "compact_boundary":
+                # só o horário: marca onde o contexto foi compactado (o texto do resumo nunca é lido)
+                eventos.append((FERRAMENTA, sessao, projeto, ts, "compactacao", caminho, None))
             if _eh_prompt(linha) and not eh_subagente_arquivo:
                 # só o rótulo derivado vai para o banco; o texto do prompt não é guardado em lugar nenhum
                 eventos.append((FERRAMENTA, sessao, projeto, ts, "prompt", caminho,
@@ -181,6 +220,10 @@ def processar_arquivo(con: sqlite3.Connection, arquivo: Path, apelidos: dict[str
                         "tool": b.get("name") or "?", "subagente": subagente,
                         # só o hash do caminho: o caminho em texto e o resto do input são descartados
                         "alvo": alvo_da_tool(sal, b.get("input")),
+                        # T19: só o nome do arquivo, sem pasta; nunca o caminho. Desligável em config.json
+                        "nome": nome_da_tool(b.get("input")) if gravar_nomes else None,
+                        # T19: Read grava só offset e limit (dois inteiros); nenhum outro argumento. Desligável em config.json
+                        "trecho": trecho_da_leitura(b.get("name"), b.get("input")) if gravar_trechos else (None, None),
                         # shell: só a classe do comando (teste, build, git, leitura, outro), nunca o texto
                         "subtipo": _subtipo(b),
                     })
@@ -205,11 +248,12 @@ def processar_arquivo(con: sqlite3.Connection, arquivo: Path, apelidos: dict[str
         con.execute(
             """INSERT OR IGNORE INTO tool_calls
                (id, ferramenta, sessao_id, projeto, ts, tool, erro, subagente, arquivo, duracao_ms, alvo_hash,
-                subtipo)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                subtipo, alvo_nome, leitura_ini, leitura_qtd)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (f"{FERRAMENTA}:{tool_id}", FERRAMENTA, t["sessao"], t["projeto"], t["ts"], t["tool"],
              None if erro is None else int(erro), t["subagente"], caminho,
-             _duracao_ms(t["ts"], ts_resultado), t["alvo"], t["subtipo"]),
+             _duracao_ms(t["ts"], ts_resultado), t["alvo"], t["subtipo"], t["nome"],
+             t["trecho"][0], t["trecho"][1]),
         )
     con.executemany(
         "INSERT INTO eventos (ferramenta, sessao_id, projeto, ts, tipo, arquivo, rotulo) VALUES (?,?,?,?,?,?,?)",
@@ -234,13 +278,14 @@ def ingerir(con: sqlite3.Connection, pasta: Path | None = None, tudo: bool = Fal
         for r in con.execute("SELECT caminho, tamanho, mtime FROM arquivos WHERE ferramenta = ?", (FERRAMENTA,))
     }
     agora = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    gravar_nomes, gravar_trechos = gravar_nome_arquivo(con), gravar_trecho_leitura(con)
 
     for arquivo in sorted(pasta.rglob("*.jsonl")):
         st = arquivo.stat()
         if not tudo and conhecidos.get(str(arquivo)) == (st.st_size, st.st_mtime):
             resumo["arquivos_pulados"] += 1
             continue
-        r = processar_arquivo(con, arquivo, apelidos)
+        r = processar_arquivo(con, arquivo, apelidos, gravar_nomes, gravar_trechos)
         con.execute(
             """INSERT OR REPLACE INTO arquivos
                (caminho, ferramenta, tamanho, mtime, processado_em, linhas_ruins)

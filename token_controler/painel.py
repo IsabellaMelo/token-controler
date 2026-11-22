@@ -1,4 +1,4 @@
-"""Painel do `tc live`, desenhado com rich (única dependência de runtime, usada só aqui).
+"""Painel do `tc live` e árvore do `tc sessao`, desenhados com rich (única dependência de runtime, usada só aqui).
 
 Duas camadas: `coletar` só consulta o banco e devolve números; `renderizar` transforma isso em rich.
 O painel mostra apenas números e metadados já gravados (nenhum texto de conversa). Inspirado no painel
@@ -18,6 +18,7 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+from rich.tree import Tree
 
 from . import comportamento, db, diagnostico, qualidade
 from .fontes import claude_code
@@ -411,3 +412,34 @@ def executar(con: sqlite3.Connection, limites: dict, apelidos: dict, intervalo: 
                 return
             if tecla in ("1", "2", "3", "4", "5"):
                 periodo = PERIODOS[int(tecla) - 1][0]
+
+
+# ---------- árvore do `tc sessao` (T19) ----------
+
+ESTILOS_ARVORE = {"titulo": "bold", "dim": "dim", "ok": "green", "erro": "bold red", "aviso": "dark_orange",
+                  "custo": "yellow", "tool": "default", "alvo": "cyan", "prompt": "bold #ffaf5f"}
+
+
+def _texto_da_linha(partes: list) -> Text:
+    """Linha de estilo por parte; construída com Text (nunca com markup) para que um nome de arquivo com `[...]` não vire estilo."""
+    linha = Text(overflow="fold")
+    for texto, estilo in partes:
+        linha.append(texto, style=ESTILOS_ARVORE.get(estilo, "default"))
+    return linha
+
+
+def _ramo(arvore: Tree, no) -> None:
+    for filho in no.filhos:
+        _ramo(arvore.add(_texto_da_linha(filho.partes)), filho)
+
+
+def renderizar_sessao(visao) -> Group:
+    """Cabeçalho, `rich.Tree` e rodapé de `detalhe.Visao`."""
+    arvore = Tree(_texto_da_linha(visao.raiz.partes), guide_style="dim")
+    _ramo(arvore, visao.raiz)
+    return Group(*[_texto_da_linha(l) for l in visao.cabecalho], Text(""), arvore, Text(""),
+                 *[_texto_da_linha(l) for l in visao.rodape])
+
+
+def imprimir_sessao(visao, console: Console | None = None) -> None:
+    (console or Console()).print(renderizar_sessao(visao))

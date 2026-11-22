@@ -21,6 +21,18 @@ Ele roda num notebook corporativo, com dados sensíveis. Por isso as regras abai
    examinado em memória para derivar o rótulo fixo `debug` (`token_controler/rotulos.py`), e só o rótulo é gravado
    (`eventos.rotulo`). O texto nunca é gravado, impresso, logado nem passado a outro código além do rotulador.
    Não crie outros rótulos derivados de prompt sem nova aprovação explícita.
+   **Segunda exceção, aprovada pelo dono do projeto em 22/11/2026, em modo de teste (T19):** o NOME do arquivo tocado
+   por uma tool (`analise.py`), sem a pasta, pode ser gravado em `tool_calls.alvo_nome`. Antes de gravar, remova qualquer
+   pasta (separadores `/` e `\`) e limite o tamanho. Continua PROIBIDO gravar caminho completo, comando de shell,
+   argumentos de tools e qualquer conteúdo; o `alvo_hash` do caminho completo continua, para distinguir arquivos de
+   mesmo nome em pastas diferentes. A chave `gravar_nome_arquivo` (padrão `true`) desliga a gravação e `tc limpar-nomes`
+   apaga a coluna. Comandos de shell só aparecem na tela com `tc sessao --comandos`, lidos do log original na hora, em
+   memória; nunca são gravados.
+   **Terceira exceção, aprovada pelo dono do projeto em 22/11/2026, em modo de teste (T19):** nas tools de leitura de
+   arquivo (`Read`), os DOIS NÚMEROS do trecho lido, a linha inicial e a quantidade de linhas (`offset` e `limit`), podem
+   ser gravados em `tool_calls.leitura_ini` e `leitura_qtd`, para distinguir reler o mesmo trecho de ler outro trecho do
+   arquivo. Só números inteiros; nenhum outro argumento (`pages`, padrões de busca, textos) é gravado. A chave
+   `gravar_trecho_leitura` (padrão `true`) desliga a gravação e `tc limpar-trechos` apaga as colunas.
 2. **Nunca fazer chamada de rede.** Nada de `requests`, `urllib`, download de tabela de preços ou telemetria.
    Os preços ficam em `token_controler/precos.py`, editados à mão.
 3. **Só biblioteca padrão do Python 3.9+.** Sem dependências de runtime. `pytest` é a única dependência de desenvolvimento.
@@ -41,7 +53,8 @@ Ele roda num notebook corporativo, com dados sensíveis. Por isso as regras abai
 ```
 token_controler/
   cli.py              # comandos `tc` (argparse); textos em português
-  painel.py           # painel do `tc live` (única parte que usa `rich`)
+  painel.py           # painel do `tc live` e árvore do `tc sessao` (única parte que usa `rich`)
+  detalhe.py          # dados e árvore neutra do `tc sessao` (só biblioteca padrão; reusa as regras de diagnostico.py)
   db.py               # schema SQLite e conexão
   precos.py           # tabela de preços (USD por milhão de tokens)
   fontes/

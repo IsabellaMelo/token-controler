@@ -55,7 +55,9 @@ def test_mesmo_arquivo_com_grafia_diferente_tem_o_mesmo_hash(con):
 def test_nao_grava_caminho_nem_conteudo_das_tools(con, tmp_path):
     con.commit()
     conteudo = (tmp_path / "t.db").read_bytes()
-    for texto in (b"SEGREDO", b"segredo", b"proj\\tools", b"proj/tools", b"echo "):
+    # nomes de arquivo (SEGREDO_a.py...) são permitidos desde a T19; o resto do input e os resultados, não
+    for texto in (b"SEGREDO_comando", b"SEGREDO_conteudo", b"SEGREDO_corpo", b"SEGREDO_erro", b"SEGREDO_novo",
+                  b"SEGREDO_padrao", b"SEGREDO_saida", b"SEGREDO_velho", b"proj\\tools", b"proj/tools", b"echo "):
         assert texto not in conteudo
 
 
