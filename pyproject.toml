@@ -1,0 +1,23 @@
+[project]
+name = "token-controler"
+version = "0.1.0"
+description = "Rastreia custo e uso (tokens, cache, tools, erros, tempo) das suas ferramentas de AI, 100% local."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["rich>=13"]  # só o painel do `tc live` usa; os demais comandos rodam só com a biblioteca padrão
+
+[project.scripts]
+tc = "token_controler.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["token_controler*"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,254 @@
+# token-controler
+
+Rastreia custo e uso das suas ferramentas de AI, 100% local e gratuito.
+Fase 1: Claude Code. Próximas: Copilot (OTel em arquivo) e scripts com a API.
+
+O banco guarda **só números e metadados** (modelo, tokens, nome da tool, erros, horários).
+Nenhum texto de prompt, resposta ou resultado de tool é gravado. Única informação derivada de um prompt: o
+rótulo `debug` (veja "Categoria e one-shot").
+
+## Instalação
+
+Requer Python 3.9+. A única dependência é o [rich](https://github.com/Textualize/rich), usado só no painel
+do `tc live` (o `pip install -e .` já o instala). Todos os outros comandos rodam só com a biblioteca padrão.
+
+```bash
+cd token-controler
+pip install -e ".[dev]"   # modo desenvolvimento, com pytest
+tc --help
+python -m pytest          # testes
+```
+
+Sem instalar: `python -m token_controler <comando>` de dentro da pasta.
+
+## Para agentes e desenvolvimento
+
+- Regras do projeto: `AGENTS.md` (lidas pelo Copilot via `.github/copilot-instructions.md` e pelo Claude Code via `CLAUDE.md`).
+- Design: `docs/design.md` · Backlog: `docs/tarefas.md`.
+- Estrutura dos logs do Copilot (sem valores): `python scripts/inspecionar_copilot.py`.
+
+## Uso
+
+```bash
+tc ingest                      # lê logs novos/alterados (rápido, incremental)
+tc resumo                      # por projeto (padrão)
+tc resumo --por dia --desde 2026-11-01
+tc resumo --por modelo         # confere se algum modelo ficou sem preço
+tc resumo --por sessao --hoje
+tc sessoes                     # duração, tempo ativo, prompts, chamadas, custo
+tc tools --projeto rpps        # uso e taxa de erro por tool
+tc diagnostico                 # onde as sessões ficaram caras ou lentas, com a evidência
+tc comportamento               # categoria dos turnos, one-shot e custo por categoria
+tc qualidade                   # confiança dos dados: linhas ilegíveis, sem preço, sem tokens
+tc live                        # painel visual que se atualiza sozinho (teclas 1-5 mudam o período, q sai)
+tc ingest --tudo               # reprocessa tudo (após mudar preços)
+tc ingest --modo calculate     # troca o modo de custo (ver "Modos de custo")
+```
+
+Filtros em `resumo`, `sessoes`, `tools` e `live`: `--desde`, `--ate`, `--hoje`, `--projeto`, `--ferramenta`.
+
+### Saída JSON
+
+`resumo`, `sessoes` e `tools` aceitam `--json`: imprimem uma lista de objetos (`[]` se não houver dados),
+com os mesmos campos da tabela e números sem formatação, para usar em scripts ou no pandas:
+
+```bash
+tc resumo --por dia --json
+tc sessoes --json | python -m json.tool
+```
+
+| Comando | Campos |
+|---|---|
+| `resumo` | a chave do agrupamento (`projeto`, `dia`, `sessao`, `modelo` ou `ferramenta`), `sessoes`, `prompts`, `chamadas`, `tools`, `erros_tool`, `erros_api`, `input`, `output`, `cache_write`, `cache_read`, `cache_taxa`, `custo_usd`, `chamadas_sem_preco` |
+| `sessoes` | `sessao`, `projeto`, `inicio`, `duracao_s`, `ativo_s`, `prompts`, `chamadas`, `tools`, `erros_tool`, `custo_usd` |
+| `tools` | `tool`, `chamadas`, `erros`, `taxa_erro` |
+
+- Tokens e contagens são inteiros. `cache_taxa` e `taxa_erro` são frações de 0 a 1. `custo_usd` é em dólar.
+- `null` onde a tabela mostra `-`: sem dado ou não se aplica (por exemplo `prompts` em `--por modelo`).
+  `custo_usd` é `null` quando nenhuma chamada do grupo tem preço, e `chamadas_sem_preco` diz quantas ficaram sem preço
+  (é o que a tabela marca com `*`). O valor nunca é chutado.
+- `sessao` traz o ID completo (a tabela mostra só o início). `inicio` é ISO 8601 em UTC; `duracao_s` e `ativo_s` são segundos.
+- No PowerShell 5.1, canalizar ou redirecionar a saída pode acrescentar BOM ou mudar a codificação, e o JSON deixa de
+  abrir em `json.load`. Dentro do Python, prefira `subprocess`, ou leia o arquivo com `encoding="utf-8-sig"`.
+
+### Painel (`tc live`)
+
+Uma tela só, para acompanhar o dia a dia: um **resumo** no topo (custo, chamadas, sessões, cache, tokens) e uma grade
+de caixas: **Por dia**, **Por projeto**, **Por atividade** (com one-shot), **Por modelo**, **Diagnóstico** (os sinais
+mais importantes), **Tools mais usadas**, **Shell** (por classe de comando), **MCP** e **Qualidade dos dados**.
+Ele relê os logs a cada atualização e usa 3, 2 ou 1 coluna conforme a largura do terminal.
+
+| Tecla | O que faz |
+|---|---|
+| `1` `2` `3` `4` `5` | período: Hoje, 7 dias, 30 dias, Mês, Tudo |
+| `r` | atualiza agora |
+| `q`, `Esc` ou `Ctrl+C` | sai e devolve o terminal como estava |
+
+```bash
+tc live                          # começa em "Hoje", atualiza a cada 15 s
+tc live --periodo 7d --intervalo 5
+tc live --projeto rpps           # só um projeto (--ferramenta também)
+tc live --simples                # painel antigo, só uma tabela de hoje, sem o rich
+```
+
+No painel, `--desde` e `--ate` não valem: use `--periodo` ou as teclas. Se o `rich` não estiver instalado, o `tc live`
+avisa e mostra o painel simples. As cores dependem do terminal (o do VS Code e o Windows Terminal funcionam); com
+a variável `NO_COLOR` definida, o painel sai sem cor.
+
+**Como aba no VS Code:** `Ctrl+Shift+P` → **Terminal: Create Terminal in Editor Area** → `tc live`.
+
+## Configuração
+
+| O quê | Onde |
+|---|---|
+| Banco | `~/.token-controler/tracker.db` (mude com `TC_DB` ou `--db`) |
+| Logs do Claude Code | `~/.claude/projects` (mude com `CLAUDE_CONFIG_DIR`) |
+| Preços | `token_controler/precos.py` |
+| Nome dos projetos | `~/.token-controler/projetos.json` (opcional) |
+
+O projeto vem do nome da pasta onde a sessão rodou. Para agrupar ou renomear, crie
+`~/.token-controler/projetos.json` com prefixo de caminho → nome:
+
+```json
+{
+  "C:/Users/voce/repos/rpps-analytics": "rpps",
+  "C:/Users/voce/repos/clin11": "clin11"
+}
+```
+
+### Não perca histórico
+
+O Claude Code apaga transcrições antigas (padrão de cerca de 30 dias). Rode `tc ingest`
+com frequência, ou aumente o prazo em `~/.claude/settings.json`:
+
+```json
+{ "cleanupPeriodDays": 365 }
+```
+
+## Métricas
+
+- **Chamadas**: requisições ao modelo, deduplicadas (o Claude Code grava várias linhas por resposta).
+- **Prompts**: mensagens digitadas por você (exclui resultados de tool, mensagens internas e subagentes).
+- **Cache w / cache r**: tokens gravados e lidos do cache. **Cache %** = leitura / input total.
+- **Erros tool**: `tool_result` com `is_error`. **Erros api**: respostas marcadas como erro de API.
+- **Ativo**: duração da sessão descontando pausas acima de 5 minutos.
+- **Custo**: estimativa pelo preço de API. Em assinatura (Pro/Max) é o equivalente, não o valor pago.
+  `*` indica chamadas sem custo: modelo fora da tabela de preços ou, no modo `display`, sem custo registrado no log.
+
+### Diagnóstico
+
+`tc diagnostico` (com `--sessao PREFIXO`, `--limite N`, os filtros de sempre e `--json`) aponta onde uma sessão ficou
+cara ou lenta. Cada recomendação traz a **evidência em números**, a ação sugerida e, quando há conta real, o impacto
+estimado em US$. A ordem é: severidade (alta, média, baixa), depois impacto em US$, depois custo da sessão.
+
+| Sinal | Dispara quando (padrão) | Severidade |
+|---|---|---|
+| cache baixo | taxa de cache < 80% em sessão com mais de 10 chamadas | média; alta se < 50% |
+| re-criação de cache | chamada da thread principal grava > 10 mil tokens de cache logo após pausa > 5 min | baixa; média a partir de 3. Impacto: gravar − ler, pelo preço do modelo (limite superior) |
+| pausa longa | intervalo > 5 min entre eventos | baixa; média a partir de 3 |
+| loop de retry | a mesma tool falha 3+ vezes seguidas | média; alta a partir de 5 |
+| leitura repetida | o mesmo arquivo (por hash) lido 3+ vezes | baixa; média a partir de 5 |
+| tool lenta | duração > p95 da tool **e** > 30 s (tool com 20+ medições; fora as que esperam você) | baixa; média se somar 10+ min |
+| sessão cara | custo > p90 das sessões do projeto (10+ sessões) ou ≥ US$ 10 | média; alta se ≥ US$ 10. Impacto: excesso sobre o p90 |
+| pressão de contexto | input total da chamada ≥ 80% da janela do modelo | média; alta ≥ 95% |
+
+**Pressão de contexto fica desligada** até você informar a janela de cada modelo: o `tc` não presume nenhuma tabela.
+Os limites acima são **propostas iniciais**, a calibrar com uso real. Para trocá-los, crie `config.json` ao lado do
+banco (`~/.token-controler/config.json`):
+
+```json
+{
+  "diagnostico": {
+    "cache_taxa_min": 0.7,
+    "custo_alto_usd": 20,
+    "tools_que_esperam": ["AskUserQuestion", "ExitPlanMode", "Agent"],
+    "janelas_contexto": { "claude-sonnet-5-5": 1000000, "claude-sonnet-4": 200000 }
+  }
+}
+```
+
+Em `janelas_contexto`, a chave é o começo do nome do modelo e o **prefixo mais longo vence** (`claude-sonnet-4-6`
+ganha de `claude-sonnet-4`). Os números do exemplo são ilustrativos: confira a janela de cada modelo na página
+oficial antes de usar.
+
+Chave desconhecida ou valor inválido é ignorado com um aviso. Todas as chaves e padrões estão em `LIMITES_PADRAO`,
+em `token_controler/diagnostico.py`. Os sinais usam só o que já está no banco; nada é estimado pelo texto.
+
+### Categoria e one-shot
+
+`tc sessoes` mostra a **categoria** e o **one-shot** de cada sessão, e `tc comportamento` (com os filtros de sempre
+e `--json`) soma tudo por categoria, com o custo. A conta é por **turno**: um prompt e as tools até o próximo prompt.
+
+- **Categoria do turno**, pelas tools usadas, na ordem: planejamento (plan mode) → delegação (`Agent`) → shell sem
+  edição: testes, git, build → edição = codificação → leitura, busca ou MCP (ou shell só de leitura) = exploração →
+  tarefas = planejamento → sem tools = conversa → o resto = geral.
+- **Debug**: se o prompt que abriu o turno fala de erro, falha ou correção (palavras em português e inglês, sem acento
+  nem caixa; veja `token_controler/rotulos.py`), um turno de **codificação** ou **exploração** vira `Debug`. Testes, git,
+  build, delegação, planejamento e conversa não mudam. O texto do prompt é examinado só em memória, na leitura, e
+  **só o rótulo** é gravado (`eventos.rotulo`); o texto nunca é gravado, impresso nem logado. Prompts de logs já
+  lidos antes dessa versão ficam sem rótulo, e `tc ingest --tudo` só rotula o que ainda existe nos logs do Claude Code.
+- **Categoria da sessão**: a mais frequente entre os turnos que usaram tools. `Conversa` só se a sessão não usou nenhuma.
+- **Comando de shell**: o texto é lido na ingestão só para escolher uma classe (`teste`, `build`, `git`, `leitura`,
+  `outro`), e só a classe é gravada em `tool_calls.subtipo`. Comando fora das listas cai em `outro`.
+- **One-shot**: de todos os turnos em que houve edição, a fração sem nenhum **retry**. Retry = o mesmo arquivo editado
+  de novo depois de um comando de shell que não seja só de leitura (`rg`, `cat`, `git log`... não verificam nada).
+  Sessão sem edição fica sem taxa (`-`, `null` no JSON), nunca 0%.
+- **Fora, de propósito**: Feature, Refatoração e Brainstorm. Só o `debug` foi autorizado a derivar do prompt.
+  Linhas gravadas antes dessa versão não têm `subtipo` nem rótulo: rode `tc ingest --tudo`.
+
+### Tools: duração e arquivo alvo
+
+Cada tool call guarda `duracao_ms` (do uso da tool até o resultado; `NULL` se não há resultado ou o intervalo
+foge de 0 a 1 h) e `alvo_hash`, um hash do caminho do arquivo lido ou editado (só `file_path`/`notebook_path`).
+**O caminho nunca é gravado.** O mesmo arquivo gera o mesmo hash em qualquer grafia (`C:\A\b.py` = `c:/a/B.py`),
+o que permite contar leituras repetidas e retrabalho. O hash leva um salt aleatório do banco: impede tabelas
+pré-calculadas, mas não é irreversível para quem tem o banco. Linhas gravadas antes dessa versão ficam `NULL`
+até um `tc ingest --tudo`. Tools que esperam você (como `AskUserQuestion`) medem o seu tempo, não o da tool.
+
+### Qualidade dos dados
+
+`tc qualidade` (também com `--json` e `--ferramenta`) diz quanto dá para confiar nos números, por ferramenta:
+
+- **linhas ilegíveis**: linhas dos logs que não são JSON válido e foram descartadas (contadas por arquivo, sem dobrar ao reprocessar);
+- **sem tokens**: chamadas em que todos os contadores de tokens são zero. O `tc` não estima tokens: só aponta a lacuna;
+- **sem preço**: chamadas de modelos fora de `precos.py` (confere contra a tabela atual, em qualquer modo de custo);
+- **registrado / calculado / sem custo**: de onde veio o custo de cada chamada;
+- **confiança**: `baixa` (falta preço ou tokens, ou há linhas ilegíveis), `media` (só falta a contagem de linhas
+  ilegíveis) ou `alta`. Os motivos aparecem abaixo da tabela. Os limites são uma proposta inicial.
+
+Chamadas de erro de API ficam fora de "sem tokens" e "sem preço". O nível de detalhe por sessão ainda não existe
+(entra com a T09) e aparece como `T09` na tabela e `null` no JSON. Arquivos lidos antes dessa versão não têm a contagem
+de linhas ilegíveis (`-`); rode `tc ingest --tudo` uma vez para preenchê-la.
+
+### Modos de custo
+
+Cada chamada guarda de onde veio o custo (`origem_custo`): `registrado` (o log trouxe o `costUSD`),
+`calculado` (tokens × `precos.py`) ou `sem_preco` (sem custo; o valor fica `NULL`, nunca chutado).
+Chamada de erro de API não tem custo nem origem. O modo escolhe qual vale:
+
+| Modo | O que faz |
+|---|---|
+| `auto` (padrão) | usa o custo registrado quando o log traz (inclusive zero); senão calcula |
+| `calculate` | ignora o registrado e sempre calcula pelos tokens |
+| `display` | só usa o registrado; chamada sem custo registrado fica `sem_preco` |
+
+`tc ingest --modo calculate` grava o modo no banco e recalcula **todas** as chamadas só com o que já está
+nele, sem reler os logs (que o Claude Code apaga). Sem `--modo`, o `ingest` mantém o modo atual.
+O rodapé de `tc resumo` mostra o modo ativo e quantas chamadas vieram de cada origem.
+
+Bancos criados antes dessa versão são migrados sozinhos na primeira execução. As chamadas antigas ficam
+`calculadas`, como eram; para capturar o `costUSD` dos logs que ainda existirem, rode `tc ingest --tudo`.
+
+## Schema
+
+`chamadas`, `tool_calls`, `eventos`, `arquivos` e `config` (modo de custo). As quatro primeiras têm a coluna `ferramenta`, para que
+novas fontes (Copilot, API) entrem no mesmo banco sem mudar os relatórios.
+Dá para consultar direto: `sqlite3 ~/.token-controler/tracker.db`.
+
+## Limitações conhecidas
+
+- O formato dos logs do Claude Code não é documentado oficialmente e pode mudar entre versões.
+  A Fase 1 foi testada com logs sintéticos; confira os números com `/cost` ou com o ccusage na primeira vez.
+- O campo `costUSD` é lido como o ccusage documenta, mas nos logs reais usados até agora (Claude Code atual)
+  ele não aparece: lá tudo é `calculado`. O caminho `registrado` foi testado só com fixture sintética.
+- Erros de API que o SDK resolve sozinho com retry não aparecem nos logs (para isso, use OpenTelemetry).

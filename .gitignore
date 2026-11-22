@@ -1,0 +1,26 @@
+# dados reais — nunca commitar
+*.db
+*.db-journal
+*.sqlite
+dados/
+dumps/
+*.log
+copilot-otel*.jsonl
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# editor / sistema
+.vscode/settings.json
+.DS_Store
+Thumbs.db
+
+# referências clonadas por engano dentro do repo
+referencias/
