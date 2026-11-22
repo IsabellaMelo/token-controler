@@ -42,6 +42,11 @@ Ele roda num notebook corporativo, com dados sensíveis. Por isso as regras abai
    nenhum texto de erro chega ao banco.
 2. **Nunca fazer chamada de rede.** Nada de `requests`, `urllib`, download de tabela de preços ou telemetria.
    Os preços ficam em `token_controler/precos.py`, editados à mão.
+   **Única exceção, aprovada pelo dono do projeto em 22/11/2026 (T24, `tc web`):** o painel local pode **escutar** conexões em
+   `127.0.0.1` (só a interface de loopback, com `http.server` da biblioteca padrão). Escutar em loopback não é chamada de rede: o
+   `tc` continua sem abrir nenhuma conexão de saída. Continua PROIBIDO ligar o servidor em `0.0.0.0`, no IP da máquina ou em
+   qualquer outra interface, aceitar métodos que não sejam `GET`, buscar qualquer recurso externo na página (fontes, scripts, CDN)
+   e responder a um `Host` que não seja o do próprio loopback.
 3. **Só biblioteca padrão do Python 3.9+.** Sem dependências de runtime. `pytest` é a única dependência de desenvolvimento.
    Sintaxe compatível com 3.9: use `from __future__ import annotations`, sem `match`, sem `X | Y` fora de anotações.
    **Única exceção, aprovada pelo dono do projeto em 21/11/2026:** `rich`, usado só em `token_controler/painel.py`

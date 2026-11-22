@@ -1,7 +1,8 @@
 # token-controler
 
 Rastreia custo e uso das suas ferramentas de AI, 100% local e gratuito.
-Fase 1: Claude Code. Próximas: Copilot (OTel em arquivo) e scripts com a API.
+Fase 1: Claude Code (pronta). Próximas: Copilot (arquivo de log/OTel) e o painel local no navegador (`tc web`).
+O wrapper para scripts com a API saiu do backlog.
 
 O banco guarda **só números e metadados** (modelo, tokens, nome da tool, erros, horários).
 Nenhum texto de prompt, resposta ou resultado de tool é gravado. Única informação derivada de um prompt: o
@@ -344,7 +345,7 @@ nunca gravados (com o log já apagado, o nó mostra "comando indisponível"). `-
 Quando uma tool falha, o `tc` lê a mensagem de erro **só em memória**, classifica por regras fixas (`token_controler/regras_erros.py`) e
 grava **apenas** a categoria (`tool_calls.erro_categoria`) e o código de saída do shell (`exit_code`). A mensagem nunca é gravada.
 As categorias: `recusado_usuario`, `bloqueado_permissao`, `mcp_auth`, `modulo_ausente`, `comando_ausente`, `sintaxe_shell`,
-`edicao_invalida`, `arquivo_ausente`, `permissao`, `timeout`, `teste_falhou`, `rede` e `outro` (design §6.4).
+`codificacao_console`, `edicao_invalida`, `arquivo_ausente`, `permissao`, `timeout`, `teste_falhou`, `rede`, `excecao_codigo` (Traceback do código rodado) e `outro` (design §6.4).
 
 - **`recusado_usuario`** (você negou a tool na tela de permissão) **não conta como erro**: fica fora da taxa de `tc tools`,
   `tc resumo`, `tc sessoes`, `tc live` e dos loops; `tc tools` mostra a coluna `recusadas` à parte.

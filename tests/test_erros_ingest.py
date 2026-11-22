@@ -374,3 +374,61 @@ def test_tc_sessao_marca_a_recusa_e_nao_como_falha(tmp_path, logs, monkeypatch, 
     linha_web = next(l for l in saida.splitlines() if "WebSearch" in l)
     assert "recusado" in linha_web and "✗" not in linha_web
     assert "✗" in next(l for l in saida.splitlines() if "PowerShell" in l)          # o bloqueio por regra é uma falha
+
+
+
+# ---------- Task e Agent; categorias da rodada seguinte ----------
+
+@pytest.mark.parametrize("nome", ["Agent", "Task"])
+def test_task_e_agent_sao_a_tool_de_subagente(tmp_path, nome):
+    raiz = tmp_path / "l" / "projects" / "p"
+    gravar(raiz / f"{SESSAO}.jsonl", [
+        prompt(0, "oi"), assistente(1, "m1", [("tA", nome, {"prompt": "x"})]),
+        resultado(9, "tA", "pronto", extra={"toolUseResult": {"agentId": "zzz999"}})])
+    gravar(raiz / SESSAO / "subagents" / "agent-zzz999.jsonl", [
+        assistente(2, "s1", [("tS", "Read", {"file_path": "C:\\x\\a.py"})], sub=True, agente="zzz999"),
+        resultado(3, "tS", "ok", sub=True)])
+    c = db.conectar(tmp_path / "t.db")
+    claude_code.ingerir(c, pasta=tmp_path / "l" / "projects")
+    assert tool(c, "tA")["subagente_id"] == "zzz999" and tool(c, "tS")["subagente_id"] == "zzz999"
+    assert tool(c, "tS")["turno"] == 1
+    c.close()
+
+
+def test_task_ligado_so_pelo_meta(tmp_path):
+    raiz = tmp_path / "l" / "projects" / "p"
+    gravar(raiz / f"{SESSAO}.jsonl", [prompt(0, "oi"), assistente(1, "m1", [("tA", "Task", {})]), resultado(9, "tA", "pronto")])
+    gravar(raiz / SESSAO / "subagents" / "agent-qqq.jsonl", [assistente(2, "s1", [("tS", "Bash", {"command": "ls"})], sub=True)])
+    (raiz / SESSAO / "subagents" / "agent-qqq.meta.json").write_text(json.dumps({"toolUseId": "tA"}), encoding="utf-8")
+    c = db.conectar(tmp_path / "t.db")
+    claude_code.ingerir(c, pasta=tmp_path / "l" / "projects")
+    assert tool(c, "tA")["subagente_id"] == "qqq"
+    c.close()
+
+
+def test_categorias_novas_no_ingest_e_sem_vazar_texto(tmp_path):
+    raiz = tmp_path / "l" / "projects" / "p"
+    gravar(raiz / f"{SESSAO}.jsonl", [
+        prompt(0, "oi"),
+        assistente(1, "m1", [("t1", "Bash", {"command": "python a.py"}), ("t2", "Bash", {"command": "python b.py"}),
+                             ("t3", "Bash", {"command": "git status"})]),
+        resultado(2, "t1", "Exit code 1\nUnicodeEncodeError: 'charmap' codec can't encode SEGREDO_CODIFICACAO", erro=True),
+        resultado(3, "t2", "Exit code 1\nTraceback (most recent call last):\nMinhaExcecaoSEGREDO: x", erro=True),
+        resultado(4, "t3", "Exit code 128\nfatal: not a git repository SEGREDO_GIT", erro=True)])
+    c = db.conectar(tmp_path / "t.db")
+    claude_code.ingerir(c, pasta=tmp_path / "l" / "projects")
+    assert [tool(c, t)["erro_categoria"] for t in ("t1", "t2", "t3")] == ["codificacao_console", "excecao_codigo", "outro"]
+    assert [tool(c, t)["exit_code"] for t in ("t1", "t2", "t3")] == [1, 1, 128]
+    c.commit()
+    conteudo = (tmp_path / "t.db").read_bytes()
+    for marca in (b"SEGREDO_CODIFICACAO", b"MinhaExcecaoSEGREDO", b"SEGREDO_GIT", b"UnicodeEncodeError", b"Traceback"):
+        assert marca not in conteudo, marca
+    c.close()
+
+
+def test_excecao_do_codigo_conta_para_o_loop_de_retry():
+    from token_controler import diagnostico
+    from token_controler.regras_erros import conta_para_erro_recorrente
+    tres = [{"tool": "Bash", "erro": 1, "erro_categoria": "excecao_codigo"} for _ in range(3)]
+    assert len(diagnostico.corridas_de_falhas(tres, {"loop_min": 3})) == 1       # entra no loop de retry
+    assert not conta_para_erro_recorrente("excecao_codigo")                     # mas não no "erro recorrente"

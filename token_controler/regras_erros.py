@@ -24,12 +24,14 @@ CATEGORIAS = (
     "modulo_ausente",
     "comando_ausente",
     "sintaxe_shell",
+    "codificacao_console",
     "edicao_invalida",
     "arquivo_ausente",
     "permissao",
     "timeout",
     "teste_falhou",
     "rede",
+    "excecao_codigo",
     "outro",
 )
 
@@ -41,18 +43,31 @@ RECOMENDACOES = {
     "modulo_ausente": "Registre no CLAUDE.md como ativar o ambiente.",
     "comando_ausente": "Registre os comandos do projeto no CLAUDE.md e confira o PATH.",
     "sintaxe_shell": "Diga no CLAUDE.md qual shell o projeto usa, com exemplos.",
+    "codificacao_console": "Use PYTHONUTF8=1 ou registre no CLAUDE.md que a saída deve ser UTF-8.",
     "edicao_invalida": "Leia o arquivo antes de editar e peça trechos únicos e menores.",
     "arquivo_ausente": "Abra a sessão na raiz do projeto e descreva a estrutura no CLAUDE.md.",
     "permissao": "Ajuste a permissão ou fale com a TI.",
     "timeout": "Rode só os testes relevantes.",
     "teste_falhou": "Normal se o código muda entre tentativas; se nada muda, é loop.",
     "rede": "Evite pedir instalações ou downloads.",
+    "excecao_codigo": "Leia o traceback e corrija a causa antes de repetir o comando; se nada mudou entre as tentativas, é loop.",
     "outro": None,
 }
 
 # Valores de `toolDenialKind` que o Claude Code grava na linha do resultado (T21). Vêm de uma lista fixa; o texto não é lido.
 NEGACAO_USUARIO = "user-rejected"
 NEGACAO_BLOQUEIO = frozenset({"permission-rule", "automode-blocked"})
+
+# T29 (design 6.4): `excecao_codigo` é o erro do código que está sendo escrito; conta para o loop de retry, mas NÃO vira
+# "erro recorrente" (isso pede mudança no CLAUDE.md, e aqui não há o que registrar lá). `recusado_usuario` não é erro e `outro`
+# não tem recomendação.
+FORA_DO_ERRO_RECORRENTE = frozenset({"recusado_usuario", "excecao_codigo", "outro"})
+
+
+def conta_para_erro_recorrente(categoria) -> bool:
+    """Se a categoria entra no sinal "erro recorrente" (a mesma categoria em 3 ou mais sessões do projeto em 7 dias)."""
+    return categoria in CATEGORIAS and categoria not in FORA_DO_ERRO_RECORRENTE
+
 
 TOOLS_DE_EDICAO = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
 TOOLS_DE_SHELL = frozenset({"Bash", "PowerShell", "Shell"})
@@ -78,6 +93,9 @@ _COMANDO = _rx(r"command not found|is not recognized as|n[aã]o [eé] reconhecid
 _SINTAXE = _rx(r"syntax error|\bParserError\b|Unexpected token|unexpected EOF|unexpected end of file|"
                r"unterminated (quoted )?string|unmatched ['\"`]|bad substitution|missing (closing|terminator)|"
                r"string is missing the terminator|erro de sintaxe|token inesperado|fim inesperado")
+_CODIFICACAO = _rx(r"UnicodeEncodeError|UnicodeDecodeError|UnicodeError|'charmap' codec|charmap|cp(1252|850|437)|"
+                  r"codec can'?t (en|de)code|'(ascii|utf-8|utf8)' codec|illegal multibyte sequence|"
+                  r"caracteres? (n[aã]o )?(pode|podem) ser (codificad|decodificad)")
 _EDICAO = _rx(r"String to replace not found|has not been read yet|read it first|has been (unexpectedly )?modified|"
               r"Found \d+ matches? of the string|No changes to make|old_string and new_string are exactly|"
               r"texto a substituir n[aã]o|n[aã]o foi lido")
@@ -98,6 +116,9 @@ _REDE = _rx(r"ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|getaddrinfo|
             r"name or service not known|(connect|read|connection)[ _]?timeout|connection timed out|ProxyError|proxy (error|authentication)|"
             r"\bSSL(Error|: )|certificate verify|failed to connect|unable to connect|"
             r"n[aã]o foi poss[ií]vel conectar|falha (de|na) conex[aã]o|conex[aã]o recusada")
+# Exceção não tratada do código rodado (Python, Java, Go, Node). Não grava o nome da exceção: só o rótulo.
+_EXCECAO = re.compile(r"Traceback \(most recent call last\)|Unhandled exception|Exception in thread|^panic: |"
+                      r"Uncaught (Type|Reference|Syntax|Range)?Error|^\s+at \S+ \(.+:\d+:\d+\)", re.IGNORECASE | re.MULTILINE)
 _SAIDA = re.compile(r"^\s*(?:Exit code|C[oó]digo de sa[ií]da)[:\s]+(-?\d{1,5})\b", re.IGNORECASE)
 
 
@@ -126,6 +147,8 @@ def classificar(texto, tool: str | None = None, servidor_mcp: str | None = None,
         return "comando_ausente"
     if _SINTAXE.search(msg):
         return "sintaxe_shell"
+    if _CODIFICACAO.search(msg):
+        return "codificacao_console"
     if tool in TOOLS_DE_EDICAO and _EDICAO.search(msg):
         return "edicao_invalida"
     if _ARQUIVO.search(msg):
@@ -138,6 +161,8 @@ def classificar(texto, tool: str | None = None, servidor_mcp: str | None = None,
         return "teste_falhou"
     if _REDE.search(msg):
         return "rede"
+    if _EXCECAO.search(msg):
+        return "excecao_codigo"
     return "outro"
 
 

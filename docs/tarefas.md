@@ -115,6 +115,10 @@ Os caminhos citados abaixo são pontos de partida; se não existirem, procure no
   **Medido nos logs reais** (45 erros, sem as 2 recusas): `outro` ficou com 19 (42%): 8 têm `Traceback` de Python genérico, 5 são erro de
   codificação do console do Windows (`charmap`/`UnicodeEncodeError`), 3 são `fatal:` do git (exit 128), 1 foi morto (exit 143). Candidatas
   a novas categorias, fora do escopo aprovado.
+  **Rodada seguinte (22/11/2026, aprovada pelo dono do projeto):** `codificacao_console` e `excecao_codigo` (15 categorias). `excecao_codigo`
+  conta para o loop de retry mas **não** para o "erro recorrente" (`regras_erros.conta_para_erro_recorrente`, usada na T29) e não grava o
+  nome da exceção. `fatal:` do git continua em `outro`. `Task` e `Agent` são aceitos como tool de subagente (testado com os dois). Não
+  existe `espera_aprovacao_ms`: o log não registra quando a aprovação foi pedida (design 6.5).
 
 ## Fase 2.5 — `tc web` (painel no navegador)
 Design em §8.1. Python + HTML + CSS gerados no servidor, **sem JavaScript e sem bibliotecas**; só `127.0.0.1`. Uma tarefa por tela, nesta ordem.
@@ -126,7 +130,7 @@ Design em §8.1. Python + HTML + CSS gerados no servidor, **sem JavaScript e sem
   tipo de token (rosca com `conic-gradient`); por projeto, por modelo e por tool (barras em `div`); tabela de sessões com sinais.
   Gráficos: barras em `div`, rosca em `conic-gradient`, linhas em SVG `<polyline>`, tooltip em `title`; fontes do sistema.
   **Antes de codar:** a regra 2 do `AGENTS.md` ("nunca fazer chamada de rede") precisa dizer que escutar em `127.0.0.1` é permitido
-  (sem conexão de saída).
+  (sem conexão de saída). *Feito em 22/11/2026: a regra 2 já tem essa exceção.*
   Aceite: testes sem rede externa (servidor em porta livre, `urllib` só para `127.0.0.1`), `html.escape` em todo texto do banco, só `GET`,
   checagem do `Host`, banco aberto só leitura (uma escrita pela conexão do servidor falha), porta ocupada → próxima, sem `<script>`
   no HTML, `pytest` passando e README atualizado.

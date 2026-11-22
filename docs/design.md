@@ -160,10 +160,10 @@ Os limites abaixo são **propostas iniciais**, a calibrar com dados reais. ✅ T
 | ○ | Pausa longa | intervalo > 5 min entre eventos (cache expirado) |
 | ○ | Pressão de contexto | input total de uma chamada acima de X% da janela do modelo |
 | ○ | Leitura repetida | o mesmo `alvo_hash` lido 3 ou mais vezes na sessão |
-| ○ | Tool lenta | duração acima do p95 daquela tool |
+| ○ | Tool lenta | duração acima do p95 daquela tool. **Ignora as tools que passaram por aprovação do usuário**: a duração inclui a espera pela resposta (ver 6.5) |
 | ○ | Sessão cara | custo acima do p90 das sessões do projeto |
 | ○ | Loop de retry por categoria *(Fase 3, T29)* | o loop de retry acima, quando as falhas da corrida têm a mesma `erro_categoria`: usa a recomendação da categoria (6.4) |
-| ○ | Erro recorrente *(novo, Fase 3, T29)* | a mesma `erro_categoria` em 3 ou mais sessões do projeto em 7 dias |
+| ○ | Erro recorrente *(novo, Fase 3, T29)* | a mesma `erro_categoria` em 3 ou mais sessões do projeto em 7 dias. **Não conta** `excecao_codigo`, `recusado_usuario` nem `outro` (`regras_erros.conta_para_erro_recorrente`) |
 
 Cada sinal vira uma **recomendação com evidência**, ordenada por impacto estimado. Exemplo: "Sessão a1b2 · cache 41% · 4 re-criações após pausas > 5 min → evite pausas longas ou abra uma sessão nova."
 
@@ -176,12 +176,14 @@ do `AGENTS.md` (decisão do dono do projeto): ela precisa ser registrada lá ant
 As regras ficam em `token_controler/regras_erros.py`, com **um teste por categoria** (fixtures sintéticas, nunca mensagens
 reais). **Testar na ordem da tabela** (`recusado_usuario`, `bloqueado_permissao` e `mcp_auth` primeiro; as duas primeiras
 vêm do campo `toolDenialKind`, sem ler texto; o `mcp_auth` só vale para tool de servidor MCP; `edicao_invalida` só para `Edit`/`Write`), porque uma recusa ou um 401 de MCP também
-poderia casar com outra categoria. O `tc ingest --tudo` reclassifica (só enquanto o log existir).
+poderia casar com outra categoria. `codificacao_console` vem antes de `excecao_codigo`, que fica por último antes de `outro`: um
+Traceback só é `excecao_codigo` se nenhuma outra categoria o explica. O `tc ingest --tudo` reclassifica (só enquanto o log existir).
+As 11 categorias do primeiro desenho viraram 13 na T21 e 15 na rodada seguinte, ambas decididas pelo dono do projeto.
 
 *Validação nos logs reais (T21, 47 erros):* com as 11 categorias originais, 21 erros (45%) caíam em `outro`. Entre eles havia
 3 bloqueios de permissão (hoje `bloqueado_permissao`) e 3 falhas de `Edit`/`Write` (hoje `edicao_invalida`). `mcp_auth` e
 `rede` não tiveram nenhum caso real nesta amostra: são testados só com fixtures. O percentual em `outro` depois das regras
-novas é medido na T23 e registrado na tarefa.
+novas é medido na T23 e registrado na tarefa. Sobraram em `outro`, por decisão do dono do projeto, os `fatal:` do git.
 
 | Categoria | Sinais | Recomendação |
 |---|---|---|
@@ -191,13 +193,15 @@ novas é medido na T23 e registrado na tarefa.
 | `modulo_ausente` | ModuleNotFoundError, No module named, ImportError | Registre no CLAUDE.md como ativar o ambiente |
 | `comando_ausente` | command not found, is not recognized as an internal or external command, não é reconhecido | Registre os comandos do projeto no CLAUDE.md; confira o PATH |
 | `sintaxe_shell` | syntax error, ParserError, Unexpected token | Diga no CLAUDE.md qual shell usa, com exemplos |
+| `codificacao_console` | UnicodeEncodeError, UnicodeDecodeError, `charmap`, cp1252, codec can't encode/decode (saída do console do Windows) | Use `PYTHONUTF8=1` ou registre no CLAUDE.md que a saída deve ser UTF-8 |
 | `edicao_invalida` | só em `Edit`/`Write`: String to replace not found, File has not been read yet, File has been modified since read | Leia o arquivo antes de editar e peça trechos únicos e menores |
 | `arquivo_ausente` | No such file or directory, FileNotFoundError, cannot find the path | Abra a sessão na raiz e descreva a estrutura no CLAUDE.md |
 | `permissao` | Permission denied, Access is denied, Acesso negado, EACCES | Ajuste a permissão ou fale com a TI |
 | `timeout` | timed out | Rode só os testes relevantes |
 | `teste_falhou` | FAILED, AssertionError, N failed | Normal se o código muda entre tentativas; senão é loop |
 | `rede` | Connection refused, ConnectTimeout, proxy | Evite pedir instalações ou downloads |
-| `outro` | nada acima | Aparece no `tc qualidade` para melhorar as regras |
+| `excecao_codigo` | Traceback do Python (e `Exception in thread`, `panic:`, `Uncaught Error`, `Unhandled exception`) que nenhuma categoria acima explica: erro do código que está sendo escrito. **Não grava o nome da exceção**, só o rótulo | Leia o traceback e corrija a causa antes de repetir; se nada mudou entre as tentativas, é loop. Conta para o loop de retry, **não** para o erro recorrente |
+| `outro` | nada acima (por exemplo `fatal:` do git, processo morto) | Aparece no `tc qualidade` para melhorar as regras |
 
 - **`recusado_usuario` não é erro de verdade:** fica fora da taxa de erro (`tc tools`, `tc resumo`, painéis) e fora da
   contagem de falhas seguidas dos loops.
@@ -207,6 +211,23 @@ novas é medido na T23 e registrado na tarefa.
     categoria, o sinal usa a recomendação dela em vez da genérica.
   - **Erro recorrente (novo):** a mesma categoria aparece em 3 ou mais sessões do projeto em 7 dias. A recomendação é a da
     categoria, e costuma pedir uma mudança no `CLAUDE.md` do projeto.
+
+### 6.5 Duração de tool e aprovação do usuário
+`tool_calls.duracao_ms` é a diferença de timestamps entre a linha do `tool_use` e a do `tool_result`. Quando a tool precisa de
+aprovação, esse tempo **inclui a espera da pessoa** (T21: `AskUserQuestion` com mediana de 80 s e máximo de 22 min).
+
+**O log não registra quando a aprovação foi pedida.** Conferido em 22/11/2026 em todos os tipos de linha: o `permissionDecision` da
+linha do resultado só tem `decision`, `source`, `reasonType`, `reasonCode` e `grantScope`, sem horário; o `queue-operation` trata
+a fila de prompts, não de permissões; nenhum `attachment` marca o pedido. Por isso **não existe `espera_aprovacao_ms`** e não dá
+para separar a espera do tempo de execução.
+
+O que existe é o **`permissionDecision.source`**: `config` quando a decisão foi automática (modo, classificador ou regra:
+1 068 de 1 082 resultados) e `user_temporary` quando a pessoa aprovou na hora (14 casos, todos `AskUserQuestion`). Regra do
+diagnóstico: **o sinal "tool lenta" ignora as tools que passaram por aprovação do usuário** (`source` diferente de `config`), além
+das tools da lista `tools_que_esperam`, que já são ignoradas. Hoje isso não está implementado e o ingest **não grava** o `source`:
+implementar pede uma coluna nova (proposta: `tool_calls.aprovacao` = `automatica` ou `usuario`), que é a questão 11 do §11.
+A amostra só tem aprovações do usuário em `AskUserQuestion`; aprovações manuais de `Bash` ou `Edit` (modo padrão do Claude
+Code) não apareceram e o valor de `source` nelas é uma hipótese a validar.
 
 ---
 
@@ -300,7 +321,7 @@ com dados da sessão.
   Segunda exceção em teste (T19, 22/11/2026): nos `Read`, os dois números do trecho lido (`offset` e `limit`) em
   `leitura_ini`/`leitura_qtd`, para não confundir ler outro trecho com reler (desligável por `gravar_trecho_leitura`; `tc limpar-trechos` apaga).
 - Nenhuma chamada de rede, nem para buscar preços. O `tc web` só **escuta** em `127.0.0.1`: não faz conexão de saída e não é
-  alcançável de outra máquina. *A regra 2 do `AGENTS.md` ("nunca fazer chamada de rede") deve dizer isso explicitamente antes da T24.*
+  alcançável de outra máquina. *A regra 2 do `AGENTS.md` ("nunca fazer chamada de rede") passou a dizer isso explicitamente (22/11/2026).*
 - Mensagem de erro de tool: lida só em memória para escolher a categoria; só `erro_categoria` e `exit_code` vão ao banco (6.4).
   *Nova exceção à regra 1 do `AGENTS.md`, a registrar na T23.*
 - O banco é um arquivo local. Não sincronizar com nuvem pessoal nem commitar.
@@ -335,9 +356,10 @@ com dados da sessão.
 5. `tool_calls.alvo_ext` (extensão do arquivo junto do hash): **pendente de decisão**. Não implementar até decidir.
 6. ~~Numeração do `turno` e `seq` compartilhada~~ **Resolvido na T22** (ver 5): turno a partir de 1, turno 0 antes do primeiro prompt; `seq` compartilhada.
 7. Comando de shell na tela de sequência: hoje só aparece a classe (`teste`, `build`, `git`...). Mostrar o texto, lido do log na hora como no `tc sessao --comandos`, é decisão à parte.
-8. A regra 1 (mensagem de erro em memória) do `AGENTS.md` foi atualizada na T23 (quarta exceção). **Falta a regra 2 (rede)**: dizer que escutar em `127.0.0.1` é permitido, antes da T24.
+8. A regra 1 (mensagem de erro em memória) do `AGENTS.md` foi atualizada na T23 (quarta exceção). A regra 2 (rede) também foi atualizada em 22/11/2026: escutar em `127.0.0.1` é permitido.
 9. ~~O wrapper para scripts com a API (antiga T12) foi retirado do backlog de propósito, ou só adiado?~~ **Retirado de propósito** (dono do projeto, 22/11/2026).
-10. Erros em `outro` nos logs reais (42% de 45): erro de codificação do console do Windows, `fatal:` do git e `Traceback` genérico de Python são candidatos a categorias novas (T23). Decidir se vale criá-las.
+10. ~~Erros em `outro` (42% de 45)~~ **Decidido** (dono do projeto, 22/11/2026): criar `codificacao_console` e `excecao_codigo`; `fatal:` do git continua em `outro`.
+11. Gravar o `permissionDecision.source` em `tool_calls.aprovacao` (`automatica` | `usuario`) para o sinal "tool lenta" ignorar as tools aprovadas pelo usuário (6.5). Decisão pendente; a amostra real só tem `AskUserQuestion` aprovada pelo usuário.
 
 ---
 

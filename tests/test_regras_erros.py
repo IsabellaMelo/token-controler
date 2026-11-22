@@ -3,7 +3,7 @@
 import pytest
 
 from token_controler.regras_erros import (CATEGORIAS, RECOMENDACOES, classificar, codigo_de_saida,
-                                          servidor_mcp_da_tool)
+                                          conta_para_erro_recorrente, servidor_mcp_da_tool)
 
 # (categoria, tool, servidor_mcp, mensagem). Cada categoria tem casos em inglês e português, Windows e Unix.
 CASOS = [
@@ -34,6 +34,21 @@ CASOS = [
     ("sintaxe_shell", "Bash", None, "unexpected EOF while looking for matching `\"'"),
     ("sintaxe_shell", "PowerShell", None, "The string is missing the terminator: \"."),
     ("sintaxe_shell", "Bash", None, "erro de sintaxe próximo ao token inesperado `('"),
+    # codificacao_console: saída do console do Windows em cp1252 (T21: 5 dos erros que caíam em `outro`)
+    ("codificacao_console", "Bash", None,
+     "Traceback (most recent call last):\nUnicodeEncodeError: 'charmap' codec can't encode character '\\u2713' in position 0"),
+    ("codificacao_console", "PowerShell", None, "UnicodeEncodeError: 'cp1252' codec can't encode character"),
+    ("codificacao_console", "Bash", None, "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 4"),
+    ("codificacao_console", "Bash", None, "UnicodeDecodeError: 'charmap' codec can't decode byte 0x81"),
+    ("codificacao_console", "Bash", None, "UnicodeError: illegal multibyte sequence"),
+    # excecao_codigo: Traceback ou exceção não tratada do código rodado
+    ("excecao_codigo", "Bash", None, "Traceback (most recent call last):\n  File \"a.py\", line 3\nKeyError: 'nome'"),
+    ("excecao_codigo", "Bash", None, "Traceback (most recent call last):\nSyntaxError: invalid syntax"),   # Python, não é sintaxe de shell
+    ("excecao_codigo", "Bash", None, "Exit code 1\nTraceback (most recent call last):\nTypeError: x"),
+    ("excecao_codigo", "Bash", None, "Exception in thread \"main\" java.lang.NullPointerException"),
+    ("excecao_codigo", "Bash", None, "panic: runtime error: index out of range"),
+    ("excecao_codigo", "Bash", None, "Error: x\n    at run (C:\\proj\\app.js:10:5)"),
+    ("excecao_codigo", "PowerShell", None, "Unhandled exception. System.InvalidOperationException: x"),
     # edicao_invalida: só em tools de edição
     ("edicao_invalida", "Edit", None, "<tool_use_error>String to replace not found in file.</tool_use_error>"),
     ("edicao_invalida", "Edit", None, "<tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>"),
@@ -81,8 +96,10 @@ OUTROS = [
     ("WebSearch", None, "Search failed upstream"),
     ("Edit", None, "Edição não aplicada por motivo desconhecido"),
     ("Bash", None, ""),
-    ("Bash", None, "Traceback (most recent call last):\nKeyError: 'nome'"),
-    ("Bash", None, "Traceback (most recent call last):\nSyntaxError: invalid syntax"),   # Python, não é sintaxe de shell
+    ("Bash", None, "fatal: not a git repository (or any of the parent directories): .git"),       # git fica em `outro`
+    ("Bash", None, "Exit code 128\nfatal: unable to access the repository"),
+    ("Bash", None, "error: pathspec 'x' did not match any file(s) known to git"),
+    ("Bash", None, "Terminated"),
     ("Read", None, "Error: unsupported file type"),
     ("mcp__drive__buscar", "drive", "Erro interno do servidor"),
 ]
@@ -102,6 +119,35 @@ def test_toda_categoria_tem_pelo_menos_um_caso_em_cada_lista():
     cobertas = {c[0] for c in CASOS} | {"outro", "bloqueado_permissao"}
     assert cobertas == set(CATEGORIAS)
     assert set(RECOMENDACOES) == set(CATEGORIAS)
+
+
+def test_codificacao_vence_excecao_e_excecao_so_pega_o_resto():
+    uni = "Traceback (most recent call last):\nUnicodeEncodeError: 'charmap' codec can't encode character"
+    assert classificar(uni, "Bash") == "codificacao_console"
+    assert classificar("Traceback (most recent call last):\nModuleNotFoundError: No module named 'x'", "Bash") == "modulo_ausente"
+    assert classificar("Traceback (most recent call last):\nAssertionError: assert 1 == 2", "Bash") == "teste_falhou"
+    assert classificar("Traceback (most recent call last):\nConnectionRefusedError: Connection refused", "Bash") == "rede"
+    assert classificar("Traceback (most recent call last):\nFileNotFoundError: [Errno 2] No such file", "Bash") == "arquivo_ausente"
+    assert classificar("Traceback (most recent call last):\nZeroDivisionError: division by zero", "Bash") == "excecao_codigo"
+
+
+def test_o_nome_da_excecao_nao_e_guardado_em_lugar_nenhum():
+    # a função devolve só um item da lista fixa, nunca parte da mensagem
+    for texto in ("Traceback (most recent call last):\nMinhaExcecaoEstranhaXYZ: segredo", "KeyError: segredo\nTraceback (most recent call last):"):
+        assert classificar(texto, "Bash") in CATEGORIAS
+
+
+def test_erro_recorrente_ignora_excecao_do_codigo():
+    assert conta_para_erro_recorrente("codificacao_console")
+    assert conta_para_erro_recorrente("modulo_ausente") and conta_para_erro_recorrente("teste_falhou")
+    assert not conta_para_erro_recorrente("excecao_codigo")
+    assert not conta_para_erro_recorrente("recusado_usuario") and not conta_para_erro_recorrente("outro")
+    assert not conta_para_erro_recorrente(None) and not conta_para_erro_recorrente("inventada")
+
+
+def test_recomendacoes_novas():
+    assert RECOMENDACOES["codificacao_console"] == "Use PYTHONUTF8=1 ou registre no CLAUDE.md que a saída deve ser UTF-8."
+    assert RECOMENDACOES["excecao_codigo"] and "traceback" in RECOMENDACOES["excecao_codigo"].lower()
 
 
 def test_a_ordem_das_categorias_e_a_do_design():

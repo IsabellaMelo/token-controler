@@ -43,6 +43,9 @@ Na linha `user` do resultado: `toolUseResult` (varia por tool), `permissionDecis
   (bloqueio por regra ou classificador). Só aparece nas linhas negadas.
 - **Exit code:** não há campo estruturado. `toolUseResult` do Bash/PowerShell tem `stdout`, `stderr`, `interrupted`, `isImage`,
   `noOutputExpected`, `timedOutAfterMs` (raro) e `returnCodeInterpretation` (raro).
+- **Aprovação:** `permissionDecision.source` é `config` (automática) ou `user_temporary` (a pessoa aprovou, 14 casos, todos
+  `AskUserQuestion`); `reasonType` (`mode`, `classifier`, `other`, `safetyCheck`); `grantScope` (`once`). **Nenhum campo traz o
+  horário do pedido de aprovação**, então a espera não se separa da duração (design 6.5).
 - **Duração própria:** só `Glob.durationMs`, `WebSearch.durationSeconds` e `Agent.totalDurationMs`. Para as demais tools a única
   medida é a diferença de timestamps entre a linha do `tool_use` e a do `tool_result`, que **inclui a espera pela aprovação**.
 - **MCP:** nome `mcp__<servidor>__<tool>`. A amostra não tinha nenhuma chamada MCP: o formato do erro de autenticação de MCP é
