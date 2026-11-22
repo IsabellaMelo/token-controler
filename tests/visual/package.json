@@ -1,0 +1,12 @@
+{
+  "name": "tc-web-testes-visuais",
+  "private": true,
+  "description": "Testes visuais do tc web (só desenvolvimento; o tc roda só com Python + biblioteca padrão). Ver README.md.",
+  "scripts": {
+    "test": "playwright test",
+    "relatorio": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0"
+  }
+}

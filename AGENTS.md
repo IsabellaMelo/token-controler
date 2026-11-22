@@ -53,6 +53,11 @@ Ele roda num notebook corporativo, com dados sensíveis. Por isso as regras abai
    (o painel do `tc painel`, a tela do `tc live` e a árvore do `tc sessao`). O `import rich` fica só nesse módulo, que o
    `cli.py` importa de forma preguiçosa; os demais comandos continuam só com a biblioteca padrão e, se o `rich` faltar, esses
    três avisam e caem em texto simples (`--simples`).
+   **Exceção de desenvolvimento, aprovada pelo dono do projeto em 22/11/2026 (T24):** Node e Playwright
+   (`@playwright/test`, versão fixa) podem ser usados **só como ferramenta de teste**, em `tests/visual/` (package.json
+   próprio), para a revisão visual do `tc web --demo`. Nada do pacote `token_controler` importa, chama ou depende de Node;
+   o `tc` continua rodando só com Python + biblioteca padrão (+ `rich` no `painel.py`). Os testes visuais só acessam
+   `127.0.0.1` e falham se a página pedir qualquer recurso de fora.
    Não adicione outras dependências sem nova aprovação explícita.
 4. **Nunca estimar tokens a partir do texto.** Sem contagem real, o valor fica `NULL` ou é marcado "sem dados".
 5. **Só leitura das fontes.** Nunca modificar, mover ou apagar os arquivos de log das ferramentas.

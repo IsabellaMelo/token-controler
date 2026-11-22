@@ -18,3 +18,30 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: pip install -e ".[dev]"
       - run: python -m pytest -q
+
+  # Revisão visual do `tc web --demo` com Playwright (ferramenta de desenvolvimento; o tc roda só com Python).
+  # Windows: as referências são tiradas no Windows (fontes Segoe UI/Cascadia); no Linux as fontes seriam outras.
+  visual:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+        working-directory: tests/visual
+      - run: npx playwright install chromium
+        working-directory: tests/visual
+      - run: npx playwright test
+        working-directory: tests/visual
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: relatorio-visual
+          path: |
+            tests/visual/playwright-report/
+            tests/visual/test-results/

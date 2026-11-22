@@ -24,3 +24,4 @@ dev = ["pytest>=7"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = [".*", "build", "dist", "*.egg", "venv", "node_modules", "visual"]  # tests/visual é do Playwright (Node)
