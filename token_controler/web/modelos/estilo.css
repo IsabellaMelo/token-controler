@@ -34,7 +34,6 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 .abas { display: flex; gap: 4px; padding: 4px; background: var(--caixa); border: 1px solid var(--borda); border-radius: 10px; }
 .aba { padding: 7px 14px; border-radius: 7px; color: var(--apagado); text-decoration: none; }
 .aba-atual { background: #262D3A; color: var(--branco); font-weight: 600; }
-.aba-off { cursor: not-allowed; }
 
 .status { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--apagado); }
 .status strong { color: var(--texto); font-weight: 600; }
@@ -49,6 +48,10 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 
 .filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
 .chip { padding: 6px 12px; border: 1px solid var(--borda-forte); border-radius: 999px; color: var(--texto); text-decoration: none; }
+a.chip:hover { background: #1B2029; color: var(--texto); }
+.chip-atual { background: #262D3A; border-color: #3A4458; color: var(--branco); font-weight: 600; }
+.grupo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.grupo-rotulo { color: var(--apagado); }
 .espaco { flex: 1 1 auto; }
 .filtros-info { color: var(--apagado); }
 .filtros-info strong { color: var(--texto); }
@@ -111,6 +114,9 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 .hora-futura .hora-barra { background: var(--linha); }
 .horas-eixo { display: flex; gap: 10px; margin-top: -8px; }
 .horas-eixo span { flex: 1 1 0; min-width: 0; text-align: center; font-size: 11px; color: var(--apagado); }
+/* muitas barras (30 dias, mês, tudo): colunas finas; o rótulo do eixo pode passar da coluna, centrado nela */
+.horas.densa, .horas-eixo.densa { gap: 3px; }
+.horas-eixo.densa span { display: flex; justify-content: center; white-space: nowrap; overflow: visible; }
 
 /* rosca */
 .rosca-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; }
@@ -190,5 +196,7 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
   .hora-valor { font-size: 9px; }
   .horas-eixo span { font-size: 10px; }
   .rosca-linha { justify-content: center; }
+  .aba { padding: 7px 10px; }
+  .horas.densa, .horas-eixo.densa { gap: 2px; }
   .tool { grid-template-columns: 76px minmax(0, 1fr) 84px; gap: 8px; }
 }

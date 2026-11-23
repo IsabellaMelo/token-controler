@@ -208,7 +208,7 @@ def test_numeros_da_pagina_batem_com_consultas(no_ar, banco_demo):
     _, corpo = pedir(no_ar)
     con = servidor.conectar_leitura(banco_demo)
     try:
-        d = consultas.dia(con, date(*demo.DIA), demo.agora(), LIM)
+        d = consultas.visao(con, "hoje", date(*demo.DIA), demo.agora(), LIM)
     finally:
         con.close()
     k = _kpis(corpo)
@@ -242,8 +242,8 @@ def _banco(tmp_path, projeto="proj", modelo="claude-sonnet-5-5", turno=1, catego
 
 def _pagina(con, demo_=False) -> str:
     momento = datetime(2026, 11, 22, 14, 0, tzinfo=timezone.utc)
-    d = consultas.dia(con, momento.astimezone().date(), momento, LIM)
-    return telas.hoje(d, LIM, demo_, 5, "127.0.0.1:8765")
+    d = consultas.visao(con, "hoje", momento.astimezone().date(), momento, LIM)
+    return telas.visao(d, LIM, demo_, 5, "127.0.0.1:8765")
 
 
 def test_texto_do_banco_e_escapado(tmp_path):

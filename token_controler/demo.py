@@ -35,6 +35,7 @@ class Sessao:
     cache: float                 # taxa de leitura de cache
     erros: int
     prompts: int
+    dia: tuple[int, int, int] = DIA    # ano, mês e dia locais (as sessões de hoje usam DIA)
 
 
 SESSOES = (
@@ -43,6 +44,20 @@ SESSOES = (
     Sessao((9, 40), "site-psicologa", "claude-sonnet-5-5", 31, 25, 1, 58, 0.92, 0.90, 2, 3),
     Sessao((10, 12), "token-controler", "claude-opus-5-5", 39, 30, 1, 74, 0.67, 0.94, 5, 4),
     Sessao((10, 58), "analisador-curriculos", "claude-haiku-5-5", 9, 9, 0, 12, 0.03, 0.85, 1, 2),
+)
+# Sessões de dias anteriores, só para as abas de 7 dias, 30 dias, mês e tudo terem o que mostrar. Vêm DEPOIS das de hoje
+# na geração, com o mesmo sorteio: os números da tela Hoje não mudam. Ficam abaixo de 10 sessões por projeto (o sinal
+# "sessão cara" precisa de 10).
+HISTORICO = (
+    Sessao((10, 5), "token-controler", "claude-opus-5-5", 52, 38, 2, 110, 1.45, 0.92, 4, 5, (2026, 11, 21)),
+    Sessao((15, 20), "site-psicologa", "claude-sonnet-5-5", 41, 33, 1, 80, 0.70, 0.90, 3, 3, (2026, 11, 21)),
+    Sessao((9, 30), "rpps-analytics", "claude-opus-5-5", 70, 52, 3, 160, 2.30, 0.78, 9, 6, (2026, 11, 20)),
+    Sessao((14, 0), "analisador-curriculos", "claude-sonnet-5-5", 35, 28, 1, 66, 0.55, 0.91, 2, 3, (2026, 11, 19)),
+    Sessao((8, 40), "token-controler", "claude-opus-5-5", 64, 47, 2, 130, 1.90, 0.94, 5, 5, (2026, 11, 17)),
+    Sessao((10, 0), "rpps-analytics", "claude-opus-5-5", 90, 60, 3, 180, 3.10, 0.88, 8, 7, (2026, 11, 10)),
+    Sessao((16, 0), "site-psicologa", "claude-haiku-5-5", 25, 20, 1, 50, 0.06, 0.85, 1, 2, (2026, 11, 4)),
+    Sessao((9, 0), "token-controler", "claude-opus-5-5", 55, 40, 2, 120, 1.70, 0.91, 4, 4, (2026, 10, 28)),
+    Sessao((11, 0), "analisador-curriculos", "claude-sonnet-5-5", 40, 32, 1, 70, 0.62, 0.90, 2, 3, (2026, 10, 12)),
 )
 # tools e peso de cada uma (parecido com o mockup); a categoria vale para as falhas daquela tool
 TOOLS = (("Bash", 30, "teste_falhou"), ("Read", 28, "arquivo_ausente"), ("Edit", 19, "edicao_invalida"),
@@ -62,7 +77,7 @@ def agora() -> datetime:
 
 def _horarios(s: Sessao, n: int, sorteio: random.Random) -> list[datetime]:
     """`n` horários dentro da sessão: o tempo ativo dividido em trechos, separados por pausas de mais de 5 min."""
-    inicio = datetime(*DIA, *s.inicio)
+    inicio = datetime(*s.dia, *s.inicio)
     pausa_total = (s.duracao_min - s.ativo_min) * 60
     pausas = [pausa_total / s.pausas] * s.pausas if s.pausas else []
     trechos = s.pausas + 1
@@ -107,7 +122,7 @@ def gerar(caminho: Path) -> Path:
     con.execute("PRAGMA journal_mode=DELETE")    # sem WAL: o banco é só lido depois, por conexões `mode=ro`
     sorteio = random.Random(20261122)
     arquivo_n = 0
-    for n_sessao, s in enumerate(SESSOES, 1):
+    for n_sessao, s in enumerate(SESSOES + HISTORICO, 1):
         sessao_id = f"demo{n_sessao:04d}-0000-4000-8000-{n_sessao:012d}"
         arquivo_n += 1
         arquivo = f"demo/sessao-{n_sessao}.jsonl"

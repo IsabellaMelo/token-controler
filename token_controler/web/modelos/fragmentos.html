@@ -2,10 +2,16 @@
      Os $campos são preenchidos por web/telas.py: todo valor vindo do banco passa por html.escape antes de entrar aqui. -->
 <!-- @aba_atual -->
 <a href="$href" class="aba aba-atual" aria-current="page">$nome</a>
-<!-- @aba_off -->
-<span class="aba aba-off" aria-disabled="true" title="$dica">$nome</span>
+<!-- @aba -->
+<a href="$href" class="aba">$nome</a>
 <!-- @chip -->
 <span class="chip">$rotulo: <strong>$valor</strong></span>
+<!-- @grupo -->
+<span class="grupo" role="group" aria-label="$rotulo"><span class="grupo-rotulo">$rotulo:</span>$opcoes</span>
+<!-- @pill -->
+<a class="chip" href="$href">$nome</a>
+<!-- @pill_atual -->
+<span class="chip chip-atual" aria-current="true">$nome</span>
 <!-- @aviso -->
 <p class="aviso" role="status">$texto</p>
 <!-- @sparkline -->
@@ -19,10 +25,10 @@
 <!-- @meta -->
 <div class="meta" style="left: $posicao%" title="$dica"></div>
 <!-- @horas -->
-<div class="horas" role="img" aria-label="$rotulo">
+<div class="horas $densidade" role="img" aria-label="$rotulo">
 $colunas
 </div>
-<div class="horas-eixo">
+<div class="horas-eixo $densidade">
 $eixo
 </div>
 <!-- @hora -->

@@ -20,6 +20,9 @@ from .precos import achar_preco
 
 PAUSA_MAX_S = 300  # pausas acima de 5 min não contam como tempo ativo
 DIAS_NO_PAINEL = 8
+PERIODOS = ("hoje", "7d", "30d", "mes", "tudo")
+DIAS_NO_GRAFICO = 31       # `tc web`: o gráfico de gasto por dia mostra no máximo estes dias (os mais recentes)
+LINHAS_NA_TABELA = 50      # `tc web`: sessões na tabela (as mais recentes)
 
 AGRUPAMENTOS = {
     "projeto": "COALESCE(projeto, '?')",
@@ -162,8 +165,11 @@ def origens_do_custo(con: sqlite3.Connection, f: Filtro) -> dict[str, int]:
         "GROUP BY origem_custo", p).fetchall())
 
 
-def sessoes(con: sqlite3.Connection, f: Filtro, limite: int) -> list[dict]:
-    """Sessões (`tc sessoes`), da mais recente para a mais antiga. Horário em UTC (ISO 8601); durações em segundos."""
+def sessoes(con: sqlite3.Connection, f: Filtro, limite: int, com_categoria: bool = True) -> list[dict]:
+    """Sessões (`tc sessoes`), da mais recente para a mais antiga. Horário em UTC (ISO 8601); durações em segundos.
+
+    `com_categoria` False pula a categoria e o one-shot (o trecho mais caro); os campos ficam None e 0.
+    """
     where, p = f.sql()
     sql = f"""
     WITH ev AS (
@@ -199,7 +205,7 @@ def sessoes(con: sqlite3.Connection, f: Filtro, limite: int) -> list[dict]:
         }
         for r in con.execute(sql, [*p, limite])
     ]
-    por_sessao = _comportamento.por_sessao(con, [l["sessao"] for l in linhas])
+    por_sessao = _comportamento.por_sessao(con, [l["sessao"] for l in linhas]) if com_categoria else {}
     for l in linhas:  # categoria (T14) e one-shot (T15), calculados do que já está no banco
         c = por_sessao.get(l["sessao"], {})
         l["categoria"] = c.get("categoria")
@@ -356,15 +362,52 @@ def custo_por_tipo(con: sqlite3.Connection, f: Filtro) -> dict:
             "chamadas_registradas": n_registrado, "sem_cache_usd": sem_cache}
 
 
-def dia(con: sqlite3.Connection, dia_: date, momento: datetime, limites: dict, projeto: str | None = None,
-        ferramenta: str | None = None) -> dict:
-    """Tudo que a tela Hoje do `tc web` mostra para um dia local, no `momento` dado (UTC, com fuso).
+def projetos_do_banco(con: sqlite3.Connection, ferramenta: str | None = None, limite: int = 12) -> list[str]:
+    """Nomes de projeto com chamadas, do mais recente para o mais antigo (as opções do filtro de projeto)."""
+    cond, p = ("AND ferramenta = ?", [ferramenta]) if ferramenta else ("", [])
+    return [r[0] for r in con.execute(f"""SELECT projeto FROM chamadas WHERE projeto IS NOT NULL {cond}
+                                          GROUP BY projeto ORDER BY MAX(ts) DESC, projeto LIMIT ?""", [*p, limite])]
 
-    `sessoes` vêm do início mais antigo para o mais novo, com o modelo principal (o de maior custo), a taxa de cache, se
-    está em andamento (atividade nos últimos `live_sessao_ativa_min`) e os sinais do diagnóstico. Os totais de duração e
-    tempo ativo são a soma das sessões (a mesma conta do `tc sessoes`).
+
+def custo_por_projeto(con: sqlite3.Connection, f: Filtro) -> list[dict]:
+    """Custo e número de sessões por projeto no filtro, do mais caro para o mais barato (só projetos com custo)."""
+    where, p = f.sql()
+    return [{"projeto": r["projeto"], "custo_usd": r["custo"], "sessoes": r["n"]} for r in con.execute(f"""
+            SELECT COALESCE(projeto, '?') AS projeto, SUM(custo_usd) AS custo, COUNT(DISTINCT sessao_id) AS n
+            FROM chamadas WHERE {where} GROUP BY 1 HAVING SUM(custo_usd) IS NOT NULL
+            ORDER BY SUM(custo_usd) DESC, 1""", p)]
+
+
+def custo_por_dia(con: sqlite3.Connection, f: Filtro, hoje: date) -> dict:
+    """Custo de cada dia local do filtro, até `hoje`, com os dias sem custo valendo 0 (o gráfico "gasto por dia").
+
+    Mostra no máximo `DIAS_NO_GRAFICO` dias, os mais recentes; `truncado` avisa quando houve corte.
     """
-    f = Filtro(desde=dia_.isoformat(), ate=dia_.isoformat(), projeto=projeto, ferramenta=ferramenta)
+    where, p = f.sql()
+    custos = {r[0]: r[1] or 0.0 for r in con.execute(
+        f"SELECT date(ts, 'localtime'), SUM(custo_usd) FROM chamadas WHERE {where} GROUP BY 1", p)}
+    inicio = date.fromisoformat(f.desde) if f.desde else (date.fromisoformat(min(custos)) if custos else hoje)
+    inicio = min(inicio, hoje)
+    dias = [inicio + timedelta(days=k) for k in range((hoje - inicio).days + 1)]
+    truncado = len(dias) > DIAS_NO_GRAFICO
+    return {"dias": [{"dia": d.isoformat(), "custo_usd": custos.get(d.isoformat(), 0.0)}
+                     for d in dias[-DIAS_NO_GRAFICO:]], "truncado": truncado}
+
+
+def visao(con: sqlite3.Connection, periodo: str, hoje: date, momento: datetime, limites: dict,
+          projeto: str | None = None, ferramenta: str | None = None) -> dict:
+    """Tudo que a tela do `tc web` (Hoje, 7 dias, 30 dias, mês, tudo) mostra, no `momento` dado (UTC, com fuso).
+
+    `periodo` é um de `PERIODOS`; os dias são os locais. `sessoes` traz as `LINHAS_NA_TABELA` mais recentes (de hoje, em ordem
+    cronológica; dos demais períodos, da mais nova para a mais antiga), com o modelo principal (o de maior custo), a taxa de
+    cache, se está em andamento (atividade nos últimos `live_sessao_ativa_min`) e os sinais do diagnóstico. Os totais de
+    duração e tempo ativo somam TODAS as sessões do período (a mesma conta do `tc sessoes`). `serie` é o gasto por hora (hoje)
+    ou por dia (os demais períodos).
+    """
+    if periodo not in PERIODOS:
+        raise ValueError(f"período inválido: {periodo!r}")
+    desde = inicio_do_periodo(periodo, hoje)
+    f = Filtro(desde=desde, ate=hoje.isoformat() if periodo == "hoje" else None, projeto=projeto, ferramenta=ferramenta)
     where, p = f.sql()
     r = con.execute(f"""SELECT COUNT(*) AS chamadas, SUM(erro_api) AS erros_api, SUM(input_tokens) AS inp,
                                SUM(output_tokens) AS outp, SUM(cache_write_5m + cache_write_1h) AS cw, SUM(cache_read) AS cr,
@@ -383,10 +426,14 @@ def dia(con: sqlite3.Connection, dia_: date, momento: datetime, limites: dict, p
                     FROM chamadas WHERE erro_api = 0 AND {where} GROUP BY 1
                     ORDER BY COALESCE(SUM(custo_usd), -1) DESC, COUNT(*) DESC""", p)]
 
-    lista = sessoes(con, f, 1000)[::-1]
+    todas = sessoes(con, f, 1_000_000, com_categoria=False)      # da mais recente para a mais antiga
+    lista = todas[:LINHAS_NA_TABELA]
+    if periodo == "hoje":
+        lista = lista[::-1]
     ids = [s["sessao"] for s in lista]
     por_modelo: dict[str, list] = defaultdict(list)
     cache_sessao: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+    ultimos: dict[str, str] = {}
     for lote in diagnostico._em_lotes(ids):
         marcas = ",".join("?" * len(lote))
         for x in con.execute(f"""SELECT sessao_id, COALESCE(modelo, '?') AS modelo, COUNT(*) AS n,
@@ -397,9 +444,6 @@ def dia(con: sqlite3.Connection, dia_: date, momento: datetime, limites: dict, p
             por_modelo[x["sessao_id"]].append((x["custo"], x["n"], x["modelo"]))
             cache_sessao[x["sessao_id"]][0] += x["cr"] or 0
             cache_sessao[x["sessao_id"]][1] += x["total"] or 0
-    ultimos = {}
-    for lote in diagnostico._em_lotes(ids):
-        marcas = ",".join("?" * len(lote))
         ultimos.update(con.execute(f"""SELECT sessao_id, MAX(ts) FROM eventos WHERE tipo = 'atividade'
                                        AND sessao_id IN ({marcas}) GROUP BY sessao_id""", lote).fetchall())
     sinais: dict[str, list[dict]] = defaultdict(list)
@@ -416,19 +460,25 @@ def dia(con: sqlite3.Connection, dia_: date, momento: datetime, limites: dict, p
         s["em_andamento"] = bool(ultimo and timedelta(0) <= momento - ultimo <= janela)
         s["sinais"] = sinais.get(s["sessao"], [])
 
+    if periodo == "hoje":
+        serie = {"tipo": "hora", "valores": por_hora(con, hoje, projeto, ferramenta)["horas"]}
+    else:
+        serie = {"tipo": "dia", **custo_por_dia(con, f, hoje)}
     arquivos = con.execute("SELECT MAX(processado_em), SUM(linhas_ruins) FROM arquivos").fetchone()
     return {
-        "dia": dia_.isoformat(), "momento": momento.isoformat(), "modo": db.ler_modo(con),
-        "ferramentas": ferramentas, "projeto": projeto,
+        "periodo": periodo, "hoje": hoje.isoformat(), "desde": desde, "momento": momento.isoformat(),
+        "modo": db.ler_modo(con), "ferramentas": ferramentas, "projeto": projeto,
+        "projetos_disponiveis": projetos_do_banco(con, ferramenta),
         "custo_usd": r["custo"], "sem_preco": r["sem_preco"] or 0,
         "chamadas": r["chamadas"], "erros_api": r["erros_api"] or 0, "prompts": prompts,
         "tokens": {"input": entrada, "output": r["outp"] or 0, "cache_write": cw, "cache_read": cr},
         "cache_taxa": cr / (entrada + cw + cr) if entrada + cw + cr else None,
         "tools": {"chamadas": t["n"], "erros": t["erros"] or 0, "recusadas": t["recusadas"] or 0},
         "sem_categoria": t["sem_categoria"] or 0, "sem_sequencia": r["sem_sequencia"] or 0,
-        "ativo_s": sum(s["ativo_s"] for s in lista), "duracao_s": sum(s["duracao_s"] for s in lista),
-        "horas": por_hora(con, dia_, projeto, ferramenta), "custo_por_tipo": custo_por_tipo(con, f),
-        "modelos": modelos, "lista_tools": tools(con, f), "sessoes": lista,
+        "ativo_s": sum(s["ativo_s"] for s in todas), "duracao_s": sum(s["duracao_s"] for s in todas),
+        "serie": serie, "projetos": custo_por_projeto(con, f), "custo_por_tipo": custo_por_tipo(con, f),
+        "modelos": modelos, "lista_tools": tools(con, f),
+        "sessoes": lista, "sessoes_total": len(todas), "sessoes_cortadas": max(0, len(todas) - len(lista)),
         "ultimo_ingest": arquivos[0], "linhas_ilegiveis": arquivos[1] or 0,
     }
 
