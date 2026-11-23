@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 from .. import consultas, db, demo, diagnostico
 from ..fontes import claude_code
@@ -31,6 +31,8 @@ ENDERECO = "127.0.0.1"           # único endereço permitido (regra 2)
 PORTA_PADRAO = 8765
 TENTATIVAS_DE_PORTA = 20
 INTERVALO_S = 5
+MAX_PARAMETRO = 200              # tamanho máximo do valor de periodo/projeto vindo da URL
+MAX_PARAMETROS = 10              # a URL com mais parâmetros que isso é lida como se não tivesse nenhum
 CSP = ("default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; "
        "form-action 'none'; frame-ancestors 'none'")
 
@@ -93,6 +95,30 @@ def preparar_banco(caminho: Path) -> None:
         con.close()
 
 
+# ---------- URL ----------
+
+def opcoes_da_url(query: str) -> tuple[str, str | None, list[str]]:
+    """(período, projeto, avisos) da query de `/`. Nunca levanta: o que for inválido é ignorado e vira um aviso.
+
+    Só `periodo` e `projeto` valem; outros parâmetros são ignorados. Parâmetro repetido vale o primeiro. Período fora da
+    lista volta para "hoje". Projeto só tem o espaço das pontas removido e o tamanho limitado (o filtro é uma igualdade
+    exata no SQL, com parâmetro; nunca vira texto de consulta).
+    """
+    avisos: list[str] = []
+    try:
+        q = parse_qs(query, keep_blank_values=False, max_num_fields=MAX_PARAMETROS, errors="replace")
+    except ValueError:
+        q = {}
+        avisos.append("A URL tem parâmetros demais: eles foram ignorados.")
+    periodo = (q.get("periodo") or ["hoje"])[0].strip()[:MAX_PARAMETRO]
+    if periodo not in consultas.PERIODOS:
+        avisos.append(f"O período “{periodo[:40]}” não existe; mostrando Hoje. Valores aceitos: "
+                      + ", ".join(consultas.PERIODOS) + ".")
+        periodo = "hoje"
+    projeto = ((q.get("projeto") or [""])[0].strip()[:MAX_PARAMETRO]) or None
+    return periodo, projeto, avisos
+
+
 # ---------- HTTP ----------
 
 class Servidor(ThreadingHTTPServer):
@@ -149,10 +175,11 @@ class Pagina(BaseHTTPRequestHandler):
             self._responder(HTTPStatus.FORBIDDEN, "Host não permitido: use http://127.0.0.1:%d/" % self.server.porta,
                             "text/plain; charset=utf-8")
             return
-        caminho = unquote(urlsplit(self.path).path)
+        partes = urlsplit(self.path)
+        caminho = unquote(partes.path)
         try:
             if caminho == "/":
-                self._responder(HTTPStatus.OK, self._hoje())
+                self._responder(HTTPStatus.OK, self._visao(partes.query))
             elif caminho == "/estilo.css":
                 self._responder(HTTPStatus.OK, telas.estilo_css(), "text/css; charset=utf-8")
             elif caminho.startswith("/sessao/"):
@@ -168,15 +195,16 @@ class Pagina(BaseHTTPRequestHandler):
             self._responder(HTTPStatus.INTERNAL_SERVER_ERROR, telas.recado(
                 "Erro ao montar a página", f"Falha interna ({type(e).__name__}). Rode `python -m pytest` para investigar."))
 
-    def _hoje(self) -> str:
+    def _visao(self, query: str) -> str:
         s = self.server
+        periodo, projeto, avisos = opcoes_da_url(query)
         momento = s.agora()
         con = conectar_leitura(s.caminho)
         try:
-            d = consultas.dia(con, momento.astimezone().date(), momento, s.limites)
+            d = consultas.visao(con, periodo, momento.astimezone().date(), momento, s.limites, projeto)
         finally:
             con.close()
-        return telas.hoje(d, s.limites, s.demo, s.intervalo, f"{ENDERECO}:{s.porta}")
+        return telas.visao(d, s.limites, s.demo, s.intervalo, f"{ENDERECO}:{s.porta}", avisos)
 
 
 # ---------- subir ----------

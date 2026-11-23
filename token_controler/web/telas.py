@@ -13,14 +13,16 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 from string import Template
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from .. import diagnostico
 
 MODELOS = Path(__file__).parent / "modelos"
 DIAS_DA_SEMANA = ("segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo")
-PERIODOS = (("hoje", "Hoje"), ("7d", "7 dias"), ("30d", "30 dias"), ("tudo", "Tudo"))
+PERIODOS = (("hoje", "Hoje"), ("7d", "7 dias"), ("30d", "30 dias"), ("mes", "Mês"), ("tudo", "Tudo"))
+DIAS_ABREVIADOS = ("seg", "ter", "qua", "qui", "sex", "sáb", "dom")
 COLUNAS_DE_HORA = 12
+COLUNAS_SEM_VALOR = 14       # com mais barras que isso, o valor sai de cima da barra (fica no title)
 ALTURA_MAX_PX = 170          # a barra da hora mais cara
 ALTURA_MIN_PX = 4
 TAXA_ERRO_DESTAQUE = 0.02    # tool com 2% de erro ou mais fica em vermelho
@@ -132,6 +134,11 @@ def hora_local(ts: str | None, segundos: bool = False) -> str:
     return t.astimezone().strftime("%H:%M:%S" if segundos else "%H:%M")
 
 
+def data_hora_local(ts: str | None) -> str:
+    t = diagnostico._t(ts) if ts else None
+    return "—" if t is None else t.astimezone().strftime("%d/%m %H:%M")
+
+
 def data_por_extenso(d: date) -> str:
     return f"{DIAS_DA_SEMANA[d.weekday()]}, {d:%d/%m/%Y}"
 
@@ -155,16 +162,39 @@ def _largura(v, maximo) -> str:
     return f"{max(0.0, min(100.0, v / maximo * 100)):.1f}"
 
 
-# ---------- blocos da tela Hoje ----------
+# ---------- períodos e URLs ----------
 
-def _abas() -> Html:
-    trechos = []
-    for codigo, nome in PERIODOS:
-        if codigo == "hoje":
-            trechos.append(preencher("aba_atual", href="/", nome=nome))
-        else:
-            trechos.append(preencher("aba_off", nome=nome, dica="as abas de período entram na próxima etapa (T25)"))
-    return juntar(trechos)
+NOMES_DO_PERIODO = dict(PERIODOS)
+QUANDO = {"hoje": "hoje", "7d": "nos últimos 7 dias", "30d": "nos últimos 30 dias", "mes": "neste mês",
+          "tudo": "em todo o histórico"}
+
+
+def url_da_visao(periodo: str = "hoje", projeto: str | None = None) -> str:
+    """URL canônica de uma visão: o que é padrão (hoje, todos os projetos) não aparece na URL."""
+    params = []
+    if periodo != "hoje":
+        params.append(("periodo", periodo))
+    if projeto:
+        params.append(("projeto", projeto))
+    return "/" + ("?" + urlencode(params) if params else "")
+
+
+def _texto_do_periodo(d: dict) -> str:
+    """Data (hoje) ou intervalo do período, no cabeçalho dos filtros."""
+    hoje = date.fromisoformat(d["hoje"])
+    if d["periodo"] == "hoje":
+        return data_por_extenso(hoje)
+    if d["periodo"] == "tudo" or not d["desde"]:
+        return f"todo o histórico, até {hoje:%d/%m/%Y}"
+    return f"{date.fromisoformat(d['desde']):%d/%m} a {hoje:%d/%m/%Y}"
+
+
+# ---------- blocos da tela ----------
+
+def _abas(d: dict) -> Html:
+    return juntar(preencher("aba_atual" if codigo == d["periodo"] else "aba",
+                            href=url_da_visao(codigo, d["projeto"]), nome=nome)
+                  for codigo, nome in PERIODOS)
 
 
 def _status(d: dict, demo: bool, recarregar_s: int) -> Html:
@@ -178,48 +208,54 @@ def _chips(d: dict) -> Html:
     nomes = {"claude_code": "Claude Code", "copilot": "Copilot"}
     ferramentas = d["ferramentas"]
     ferramenta = nomes.get(ferramentas[0], ferramentas[0]) if len(ferramentas) == 1 else "todas"
-    return juntar([preencher("chip", rotulo="Ferramenta", valor=ferramenta),
-                   preencher("chip", rotulo="Projeto", valor=d["projeto"] or "todos"),
-                   preencher("chip", rotulo="Modelo", valor="todos")])
+    projetos = list(d["projetos_disponiveis"])
+    if d["projeto"] and d["projeto"] not in projetos:
+        projetos.append(d["projeto"])                    # filtro vindo da URL, mesmo sem dados, continua visível e removível
+    chips = [preencher("chip", rotulo="Ferramenta", valor=ferramenta)]
+    if projetos:
+        opcoes = [preencher("pill_atual" if not d["projeto"] else "pill", href=url_da_visao(d["periodo"]), nome="todos")]
+        opcoes += [preencher("pill_atual" if p == d["projeto"] else "pill", href=url_da_visao(d["periodo"], p), nome=p)
+                   for p in projetos]
+        chips.append(preencher("grupo", rotulo="Projeto", opcoes=juntar(opcoes)))
+    else:
+        chips.append(preencher("chip", rotulo="Projeto", valor="todos"))
+    chips.append(preencher("chip", rotulo="Modelo", valor="todos"))
+    return juntar(chips)
 
 
-def _avisos(d: dict) -> Html:
-    trechos = []
+def _avisos(d: dict, extras: list[str]) -> Html:
+    quando = QUANDO[d["periodo"]]
+    trechos = [preencher("aviso", texto=e) for e in extras]
+    if d["projeto"] and not d["chamadas"] and not d["sessoes"]:
+        trechos.append(preencher("aviso", texto=f"Nenhum dado do projeto “{d['projeto']}” {quando}."))
     if d["sem_sequencia"] or d["sem_categoria"]:
         partes = []
         if d["sem_sequencia"]:
             partes.append(f"{inteiro(d['sem_sequencia'])} chamada(s) sem turno e sequência")
         if d["sem_categoria"]:
             partes.append(f"{inteiro(d['sem_categoria'])} erro(s) de tool sem categoria")
-        texto = Html(_valor(f"Parte dos dados de hoje foi gravada por uma versão antiga do tc ({' e '.join(partes)}). ")
+        texto = Html(_valor(f"Parte dos dados {'de hoje' if d['periodo'] == 'hoje' else 'do período'} foi gravada por uma "
+                            f"versão antiga do tc ({' e '.join(partes)}). ")
                      + "Feche os <code>tc live</code>/<code>tc painel</code> abertos antes da atualização e rode "
                        "<code>tc ingest --tudo</code>.")
         trechos.append(preencher("aviso", texto=texto))
     if d["sem_preco"]:
-        trechos.append(preencher("aviso", texto=f"{inteiro(d['sem_preco'])} chamada(s) de hoje sem preço (modelo fora da "
-                                                "tabela ou sem custo no modo atual): os custos com * estão incompletos."))
+        trechos.append(preencher("aviso", texto=f"{inteiro(d['sem_preco'])} chamada(s) {'de hoje' if d['periodo'] == 'hoje' else 'do período'} "
+                                                "sem preço (modelo fora da tabela ou sem custo no modo atual): os custos com * "
+                                                "estão incompletos."))
     return juntar(trechos)
 
 
-def _horas_com_custo(horas: list[float]) -> list[int]:
-    return [h for h, v in enumerate(horas) if v > 0]
-
-
-def _sparkline(horas: list[float], hora_atual: int) -> Html:
-    """Custo acumulado da primeira hora com custo até a hora atual (pontos num quadro de 200 x 40)."""
-    com_custo = _horas_com_custo(horas)
-    if not com_custo:
-        return preencher("sparkline", rotulo="Sem custo hoje", pontos="0,40 200,40")
-    ini, fim = min(com_custo[0], hora_atual), max(hora_atual, com_custo[-1])
-    acumulado, pontos = 0.0, []
-    total = sum(horas[ini:fim + 1]) or 1
-    passos = max(1, fim - ini + 1)
-    pontos.append("0,40")
-    for k, h in enumerate(range(ini, fim + 1), 1):
-        acumulado += horas[h]
-        pontos.append(f"{k * 200 / passos:.1f},{40 - acumulado / total * 36:.1f}")
-    return preencher("sparkline", pontos=" ".join(pontos),
-                     rotulo=f"Custo acumulado das {ini:02d}h às {fim:02d}h, até {usd(acumulado)}")
+def _sparkline(valores: list[float], descricao: str) -> Html:
+    """Custo acumulado dos `valores` (pontos num quadro de 200 x 40)."""
+    total = sum(valores)
+    if not total:
+        return preencher("sparkline", rotulo="Sem custo", pontos="0,40 200,40")
+    acumulado, pontos = 0.0, ["0,40"]
+    for k, v in enumerate(valores, 1):
+        acumulado += v
+        pontos.append(f"{k * 200 / len(valores):.1f},{40 - acumulado / total * 36:.1f}")
+    return preencher("sparkline", pontos=" ".join(pontos), rotulo=f"Custo acumulado {descricao}, até {usd(acumulado)}")
 
 
 def _faixa_tokens(t: dict) -> Html:
@@ -238,8 +274,9 @@ def _trilho(fracao, classe: str, rotulo: str, meta: float | None = None) -> Html
     return preencher("trilho", largura=_largura(fracao or 0, 1), classe=classe, rotulo=rotulo, marca=marca)
 
 
-def _bloco_horas(horas: list[float], hora_atual: int) -> Html:
-    com_custo = _horas_com_custo(horas)
+def _grafico_horas(horas: list[float], hora_atual: int) -> tuple[Html, str]:
+    """Gasto por hora do dia (a tela Hoje): janela de `COLUNAS_DE_HORA` horas; devolve (HTML, nota do cabeçalho)."""
+    com_custo = [h for h, v in enumerate(horas) if v > 0]
     ini = min(com_custo[0] if com_custo else hora_atual, hora_atual)
     ini = max(0, min(ini, 24 - COLUNAS_DE_HORA))
     janela = range(ini, ini + COLUNAS_DE_HORA)
@@ -259,14 +296,45 @@ def _bloco_horas(horas: list[float], hora_atual: int) -> Html:
         colunas.append(preencher("hora", classe=classe, valor=valor, altura=altura, dica=dica))
         eixo.append(preencher("hora_rotulo", rotulo=f"{h:02d}h"))
     rotulo = ("Gasto por hora, em dólares: " + "; ".join(descricao)) if descricao else "Sem gasto hoje"
-    return preencher("horas", rotulo=rotulo, colunas=juntar(colunas), eixo=juntar(eixo))
+    return (preencher("horas", rotulo=rotulo, colunas=juntar(colunas), eixo=juntar(eixo), densidade=""),
+            "hora atual em destaque")
+
+
+def _grafico_dias(serie: dict, hoje_iso: str) -> tuple[Html, str]:
+    """Gasto por dia dos períodos mais longos; devolve (HTML, nota do cabeçalho)."""
+    itens = serie["dias"]
+    n = len(itens)
+    maior = max((i["custo_usd"] for i in itens), default=0)
+    denso = n > COLUNAS_SEM_VALOR
+    passo = 1 if n <= 12 else -(-n // 10)                      # cerca de 10 rótulos no eixo, a partir do dia mais recente
+    colunas, eixo, descricao = [], [], []
+    for k, item in enumerate(itens):
+        v = item["custo_usd"]
+        dia_ = date.fromisoformat(item["dia"])
+        classe = "hora-atual" if item["dia"] == hoje_iso else ""
+        valor = "" if denso else (_decimal(v, 2) if v > 0 else "—")
+        altura = max(ALTURA_MIN_PX, round(v / maior * ALTURA_MAX_PX)) if maior and v > 0 else ALTURA_MIN_PX
+        dica = f"{dia_:%d/%m} ({DIAS_ABREVIADOS[dia_.weekday()]}): {usd(v)}" + (" (hoje, até agora)" if classe else "")
+        if v > 0:
+            descricao.append(f"{dia_:%d/%m} {_decimal(v, 2)}")
+        colunas.append(preencher("hora", classe=classe, valor=valor, altura=altura, dica=dica))
+        eixo.append(preencher("hora_rotulo", rotulo=f"{dia_:%d/%m}" if (n - 1 - k) % passo == 0 else ""))
+    rotulo = ("Gasto por dia, em dólares: " + "; ".join(descricao)) if descricao else "Sem gasto no período"
+    nota = "sem gasto no período"
+    if maior:
+        pico = max(itens, key=lambda i: i["custo_usd"])
+        nota = f"pico {usd(maior)} em {date.fromisoformat(pico['dia']):%d/%m} · hoje em destaque"
+    if serie["truncado"]:
+        nota += f" · últimos {n} dias"
+    return (preencher("horas", rotulo=rotulo, colunas=juntar(colunas), eixo=juntar(eixo), densidade="densa" if denso else ""),
+            nota)
 
 
 def _bloco_rosca(d: dict) -> Html:
     cpt = d["custo_por_tipo"]
     total_dividido = cpt["calculado_usd"]
     if not total_dividido and not cpt["registrado_usd"]:
-        return preencher("sem_dados", texto="Sem custo hoje.")
+        return preencher("sem_dados", texto=f"Sem custo {QUANDO[d['periodo']]}.")
     fatias, itens, rotulo, inicio = [], [], [], 0.0
     base = total_dividido + cpt["registrado_usd"]
     for chave in ("output", "cache_write", "cache_read", "input"):
@@ -285,14 +353,15 @@ def _bloco_rosca(d: dict) -> Html:
     if total_dividido:
         nota = preencher("nota", texto=f"Sem cache, as mesmas chamadas custariam ~{usd(cpt['sem_cache_usd'])} "
                                        "(contexto inteiro cobrado como input, com os tokens reais).")
+    sub = "hoje" if d["periodo"] == "hoje" else NOMES_DO_PERIODO[d["periodo"]].lower()
     return preencher("rosca", fatias=", ".join(fatias), rotulo="Rosca: " + ", ".join(rotulo),
-                     total=usd(d["custo_usd"], bool(d["sem_preco"])), sub="hoje", itens=juntar(itens), nota=nota)
+                     total=usd(d["custo_usd"], bool(d["sem_preco"])), sub=sub, itens=juntar(itens), nota=nota)
 
 
 def _bloco_projetos(d: dict) -> Html:
-    projetos = d["horas"]["projetos"]
+    projetos = d["projetos"]
     if not projetos:
-        return preencher("sem_dados", texto="Nenhum projeto com custo hoje.")
+        return preencher("sem_dados", texto=f"Nenhum projeto com custo {QUANDO[d['periodo']]}.")
     maior = projetos[0]["custo_usd"]
     return juntar(preencher("item", nome=p["projeto"], classe="cheio-projeto", largura=_largura(p["custo_usd"], maior),
                             valor=f"{usd(p['custo_usd'])} · {p['sessoes']} {'sessão' if p['sessoes'] == 1 else 'sessões'}",
@@ -303,7 +372,7 @@ def _bloco_projetos(d: dict) -> Html:
 def _bloco_modelos(d: dict) -> Html:
     modelos = d["modelos"]
     if not modelos:
-        return preencher("sem_dados", texto="Nenhuma chamada hoje.")
+        return preencher("sem_dados", texto=f"Nenhuma chamada {QUANDO[d['periodo']]}.")
     total = sum(m["custo_usd"] or 0 for m in modelos)
     maior = max((m["custo_usd"] or 0) for m in modelos)
     return juntar(preencher("item", nome=nome_do_modelo(m["modelo"]), classe="cheio-modelo",
@@ -316,7 +385,7 @@ def _bloco_modelos(d: dict) -> Html:
 def _bloco_tools(d: dict) -> Html:
     lista = d["lista_tools"]
     if not lista:
-        return preencher("sem_dados", texto="Nenhuma tool hoje.")
+        return preencher("sem_dados", texto=f"Nenhuma tool {QUANDO[d['periodo']]}.")
     maior = lista[0]["chamadas"]
     trechos = []
     for t in lista[:6]:
@@ -351,12 +420,14 @@ def _selos(sinais: list[dict]) -> Html:
 
 def _bloco_sessoes(d: dict, meta_cache: float) -> Html:
     if not d["sessoes"]:
-        return preencher("sem_dados", texto="Nenhuma sessão hoje. Assim que você usar o Claude Code, ela aparece aqui.")
+        extra = " Assim que você usar o Claude Code, ela aparece aqui." if d["periodo"] == "hoje" else ""
+        return preencher("sem_dados", texto=f"Nenhuma sessão {QUANDO[d['periodo']]}.{extra}")
     linhas = []
     for s in d["sessoes"]:
         cache = s["cache_taxa"]
+        inicio = hora_local(s["inicio"]) if d["periodo"] == "hoje" else data_hora_local(s["inicio"])
         linhas.append(preencher(
-            "linha", inicio=hora_local(s["inicio"]), href=f"/sessao/{quote(s['sessao'][:8], safe='')}",
+            "linha", inicio=inicio, href=f"/sessao/{quote(s['sessao'][:8], safe='')}",
             projeto=s["projeto"], andamento=preencher("andamento") if s["em_andamento"] else Html(""),
             modelo=nome_do_modelo(s["modelo"], curto=True), duracao=duracao(s["duracao_s"]), ativo=duracao(s["ativo_s"]),
             chamadas=inteiro(s["chamadas"]), cache=pct(cache),
@@ -365,20 +436,42 @@ def _bloco_sessoes(d: dict, meta_cache: float) -> Html:
     return preencher("tabela", linhas=juntar(linhas))
 
 
-def hoje(d: dict, limites: dict, demo: bool, recarregar_s: int, endereco: str) -> str:
-    """A tela Hoje inteira, a partir de `consultas.dia`."""
+def visao(d: dict, limites: dict, demo: bool, recarregar_s: int, endereco: str, avisos: list[str] | None = None) -> str:
+    """A tela inteira (Hoje, 7 dias, 30 dias, mês ou tudo), a partir de `consultas.visao`.
+
+    `avisos` são textos simples (por exemplo, "período inválido") mostrados no topo; entram escapados.
+    """
+    periodo = d["periodo"]
+    nome = NOMES_DO_PERIODO[periodo]
     momento = datetime.fromisoformat(d["momento"])
-    hora_atual = momento.astimezone().hour
-    horas = d["horas"]["horas"]
     t = d["tokens"]
     total_tokens = sum(t.values())
     tools_ = d["tools"]
     sessoes = d["sessoes"]
+    serie = d["serie"]
     em_andamento = sum(1 for s in sessoes if s["em_andamento"])
     meta = limites["cache_taxa_min"]
     abaixo = sum(1 for s in sessoes if any(x["sinal"] == "cache_baixo" for x in s["sinais"]))
     taxa_tools = tools_["erros"] / tools_["chamadas"] if tools_["chamadas"] else None
     ativo, total = d["ativo_s"], d["duracao_s"]
+
+    if serie["tipo"] == "hora":
+        horas, hora_atual = serie["valores"], momento.astimezone().hour
+        grafico, grafico_nota = _grafico_horas(horas, hora_atual)
+        grafico_titulo = "Gasto por hora"
+        com_custo = [h for h, v in enumerate(horas) if v > 0]
+        ini, fim = min(com_custo[0] if com_custo else hora_atual, hora_atual), max(hora_atual, com_custo[-1] if com_custo else 0)
+        spark = _sparkline(horas[ini:fim + 1], f"das {ini:02d}h às {fim:02d}h")
+        custo_nota = f"+{usd(horas[hora_atual])} nesta hora · equivalente de API"
+        custo_rotulo = "Custo hoje"
+    else:
+        grafico, grafico_nota = _grafico_dias(serie, d["hoje"])
+        grafico_titulo = "Gasto por dia"
+        valores = [i["custo_usd"] for i in serie["dias"]]
+        spark = _sparkline(valores, f"de {date.fromisoformat(serie['dias'][0]['dia']):%d/%m} a "
+                                    f"{date.fromisoformat(serie['dias'][-1]['dia']):%d/%m}")
+        custo_nota = f"+{usd(valores[-1])} hoje · equivalente de API"
+        custo_rotulo = f"Custo · {nome.lower()}"
 
     nota_tools = f"Erros de API: {inteiro(d['erros_api'])}" if d["erros_api"] else "Nenhum erro de API"
     if tools_["recusadas"]:
@@ -386,13 +479,16 @@ def hoje(d: dict, limites: dict, demo: bool, recarregar_s: int, endereco: str) -
     fonte = ("Fonte: banco de demonstração (dados fictícios)" if demo else "Fonte: ~/.claude/projects")
     fonte += (f" · último ingest {hora_local(d['ultimo_ingest'], segundos=True)}"
               f" · {inteiro(d['linhas_ilegiveis'])} linhas ilegíveis · {endereco}")
+    dica = "clique em uma sessão para ver o detalhe" if sessoes else ""
+    if d["sessoes_cortadas"]:
+        dica = f"mostrando as {len(sessoes)} mais recentes de {inteiro(d['sessoes_total'])} · " + dica
 
     conteudo = preencher(
         HOJE,
-        abas=_abas(), classe_ponto="ponto" if demo else "ponto ponto-vivo", status=_status(d, demo, recarregar_s),
-        chips=_chips(d), modo=d["modo"], data_extenso=data_por_extenso(date.fromisoformat(d["dia"])), avisos=_avisos(d),
-        custo=usd(d["custo_usd"] or 0, bool(d["sem_preco"])), sparkline=_sparkline(horas, hora_atual),
-        custo_nota=f"+{usd(horas[hora_atual])} nesta hora · equivalente de API",
+        abas=_abas(d), classe_ponto="ponto" if demo else "ponto ponto-vivo", status=_status(d, demo, recarregar_s),
+        chips=_chips(d), modo=d["modo"], data_extenso=_texto_do_periodo(d), avisos=_avisos(d, avisos or []),
+        custo_rotulo=custo_rotulo, custo=usd(d["custo_usd"] or 0, bool(d["sem_preco"])), sparkline=spark,
+        custo_nota=custo_nota,
         tokens=tokens(total_tokens), faixa_tokens=_faixa_tokens(t),
         tokens_nota=Html(_valor(f"input {tokens(t['input'])} · output {tokens(t['output'])}") + "<br>"
                          + _valor(f"cache: {tokens(t['cache_read'])} lidos · {tokens(t['cache_write'])} gravados")),
@@ -403,7 +499,8 @@ def hoje(d: dict, limites: dict, demo: bool, recarregar_s: int, endereco: str) -
         chamadas=inteiro(d["chamadas"]),
         chamadas_nota=(f"{inteiro(d['prompts'])} prompts · "
                        + (f"{round(d['chamadas'] / d['prompts'])} chamadas por prompt" if d["prompts"] else "sem prompts")),
-        sessoes_nota=f"{len(sessoes)} {'sessão' if len(sessoes) == 1 else 'sessões'} · {em_andamento} em andamento",
+        sessoes_nota=(f"{d['sessoes_total']} {'sessão' if d['sessoes_total'] == 1 else 'sessões'} · "
+                      f"{em_andamento} em andamento"),
         tools=inteiro(tools_["chamadas"]),
         tools_erro=f"{inteiro(tools_['erros'])} com erro ({pct(taxa_tools, 1)})" if tools_["erros"] else "nenhuma com erro",
         classe_tools_erro="kpi-nota kpi-erro" if tools_["erros"] else "kpi-nota",
@@ -412,12 +509,12 @@ def hoje(d: dict, limites: dict, demo: bool, recarregar_s: int, endereco: str) -
         trilho_ativo=_trilho(ativo / total if total else 0, "cor-ativo",
                              f"Tempo ativo é {pct(ativo / total if total else None)} do tempo total de sessão"),
         ativo_nota=f"de {duracao(total)} de sessão (pausas > 5 min descontadas)",
-        horas=_bloco_horas(horas, hora_atual), rosca=_bloco_rosca(d),
+        grafico_titulo=grafico_titulo, grafico_nota=grafico_nota, grafico=grafico, rosca=_bloco_rosca(d),
         projetos=_bloco_projetos(d), modelos=_bloco_modelos(d), lista_tools=_bloco_tools(d),
-        sessoes_dica="clique em uma sessão para ver o detalhe" if sessoes else "",
+        sessoes_titulo="Sessões de hoje" if periodo == "hoje" else f"Sessões · {nome.lower()}", sessoes_dica=dica,
         tabela=_bloco_sessoes(d, meta), fonte=fonte,
     )
-    return pagina("tc web · Hoje", conteudo, None if demo else recarregar_s)
+    return pagina(f"tc web · {nome}", conteudo, None if demo else recarregar_s)
 
 
 def recado(titulo: str, texto: str) -> str:

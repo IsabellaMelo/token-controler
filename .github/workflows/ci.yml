@@ -8,8 +8,9 @@ jobs:
   testes:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false   # uma célula que falha não cancela as outras
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-24.04, windows-latest]   # ubuntu-latest já é o 26.04, que não tem Python 3.9
         python: ["3.9", "3.12"]
     steps:
       - uses: actions/checkout@v4

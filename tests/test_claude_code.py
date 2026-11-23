@@ -32,10 +32,10 @@ def test_deduplica_linhas_da_mesma_resposta(con):
 
 
 def test_contagens_do_projeto(con):
-    assert um(con, "SELECT COUNT(*) FROM chamadas WHERE projeto='rpps'") == 4
-    assert um(con, "SELECT COUNT(*) FROM tool_calls WHERE projeto='rpps'") == 3
-    assert um(con, "SELECT SUM(erro) FROM tool_calls WHERE projeto='rpps'") == 1
-    assert um(con, "SELECT COUNT(*) FROM eventos WHERE tipo='prompt' AND projeto='rpps'") == 2
+    assert um(con, "SELECT COUNT(*) FROM chamadas WHERE projeto='proj-um'") == 4
+    assert um(con, "SELECT COUNT(*) FROM tool_calls WHERE projeto='proj-um'") == 3
+    assert um(con, "SELECT SUM(erro) FROM tool_calls WHERE projeto='proj-um'") == 1
+    assert um(con, "SELECT COUNT(*) FROM eventos WHERE tipo='prompt' AND projeto='proj-um'") == 2
     assert um(con, "SELECT SUM(erro_api) FROM chamadas") == 1
     assert um(con, "SELECT SUM(subagente) FROM chamadas") == 1
 
@@ -55,7 +55,7 @@ def test_modelo_desconhecido_fica_sem_preco(con):
 def test_nao_grava_texto_das_conversas(con, tmp_path):
     con.commit()
     conteudo = (tmp_path / "t.db").read_bytes()
-    for texto in (b"SEGREDO", b"analise os fundos", b"gera relatorio"):
+    for texto in (b"SEGREDO", b"analise os dados", b"gera relatorio"):
         assert texto not in conteudo
 
 
@@ -86,4 +86,4 @@ def test_cli_roda_os_relatorios(tmp_path, monkeypatch, capsys):
     for cmd in (["resumo"], ["resumo", "--por", "modelo"], ["sessoes"], ["tools"]):
         main(["--db", banco, *cmd])
     saida = capsys.readouterr().out
-    assert "rpps" in saida and "Bash" in saida and "$0.12" in saida
+    assert "proj-um" in saida and "Bash" in saida and "$0.12" in saida

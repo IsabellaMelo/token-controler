@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tc web — Hoje (mockup)</title>
+<!--
+  MOCKUP DE REFERÊNCIA — dados fictícios.
+  Só HTML + CSS, sem JavaScript e sem recursos externos.
+  Serve de guia visual para o tc web (design.md §8.1): reproduzir o visual com os dados reais,
+  gerado pelo Python no servidor. No tc web de verdade, acrescentar
+  <meta http-equiv="refresh" content="5"> e trocar os "#topo" por URLs com parâmetros.
+-->
+<style>body{margin:0;background:#0E1014}
+a{color:#9CC3FF}a:hover{color:#C9DDFF}
+@keyframes tcpulse{0%{box-shadow:0 0 0 0 rgba(70,211,154,.55)}70%{box-shadow:0 0 0 8px rgba(70,211,154,0)}100%{box-shadow:0 0 0 0 rgba(70,211,154,0)}}
+.tc-dot{animation:tcpulse 2s infinite}
+@media (prefers-reduced-motion: reduce){.tc-dot{animation:none}}
+.tc-row:hover{background:#1B2029}</style>
+</head>
+<body>
+<div id="topo" style="min-height: 100vh; background: #0E1014; color: #E7EAEE; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.45">
+<div style="max-width: 1360px; margin: 0 auto; padding: 28px 32px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px">
+<svg width="34" height="34" viewbox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="9" fill="#161A21" stroke="#2C3340"></rect><rect x="8" y="18" width="4" height="9" rx="1.5" fill="#3567B8"></rect><rect x="15" y="12" width="4" height="15" rx="1.5" fill="#6AA6FF"></rect><rect x="22" y="7" width="4" height="20" rx="1.5" fill="#F5A04A"></rect></svg>
+<div style="display: flex; flex-direction: column">
+<span style="font-size: 17px; font-weight: 650; letter-spacing: -0.01em">token-controler</span>
+<span style="font-size: 12px; color: #A0A9B8">tc web · painel local</span>
+</div>
+</div>
+<nav aria-label="Período" style="display: flex; gap: 4px; padding: 4px; background: #161A21; border: 1px solid #252B35; border-radius: 10px">
+<a href="#topo" aria-current="page" style="padding: 7px 14px; border-radius: 7px; background: #262D3A; color: #FFFFFF; text-decoration: none; font-weight: 600">Hoje</a>
+<a href="#topo" style="padding: 7px 14px; border-radius: 7px; color: #A0A9B8; text-decoration: none">7 dias</a>
+<a href="#topo" style="padding: 7px 14px; border-radius: 7px; color: #A0A9B8; text-decoration: none">30 dias</a>
+<a href="#topo" style="padding: 7px 14px; border-radius: 7px; color: #A0A9B8; text-decoration: none">Tudo</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #A0A9B8">
+<span class="tc-dot" style="width: 9px; height: 9px; border-radius: 50%; background: #46D39A; display: inline-block"></span>
+<span><strong style="color: #E7EAEE; font-weight: 600">Ao vivo</strong> · atualizado às 11:07:42 · recarrega a cada 5 s</span>
+</div>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px">
+<a href="#topo" style="padding: 6px 12px; border: 1px solid #2C3340; border-radius: 999px; color: #E7EAEE; text-decoration: none">Ferramenta: <strong>Claude Code</strong></a>
+<a href="#topo" style="padding: 6px 12px; border: 1px solid #2C3340; border-radius: 999px; color: #E7EAEE; text-decoration: none">Projeto: <strong>todos</strong></a>
+<a href="#topo" style="padding: 6px 12px; border: 1px solid #2C3340; border-radius: 999px; color: #E7EAEE; text-decoration: none">Modelo: <strong>todos</strong></a>
+<span style="flex: 1 1 auto"></span>
+<span style="color: #A0A9B8">Modo de custo: <strong style="color: #E7EAEE">auto</strong> · domingo, 22/11/2026</span>
+</div>
+
+<section aria-label="Indicadores do dia" style="display: flex; flex-wrap: wrap; gap: 16px">
+<div style="flex: 1 1 150px; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em">Custo hoje</span>
+<span style="font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums; color: #F5A04A">US$ 4,87</span>
+<svg viewbox="0 0 200 40" preserveaspectratio="none" style="width: 100%; height: 36px" role="img" aria-label="Custo acumulado ao longo do dia, subindo de zero às 7h até 4,87 dólares às 11h"><polyline points="0,40 50,36.9 100,28.2 150,13 200,4" fill="none" stroke="#F5A04A" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline></svg>
+<span style="font-size: 12px; color: #A0A9B8">+US$ 1,22 nesta hora · equivalente de API</span>
+</div>
+<div style="flex: 1 1 150px; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em">Tokens</span>
+<span style="font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums">3,20 M</span>
+<div role="img" aria-label="Divisão dos tokens: 83% leitura de cache, 10% gravação de cache, 6% output, 1% input" style="display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 8px 0 6px">
+<div style="width: 1.3%; background: #D3DAE4"></div>
+<div style="width: 5.8%; background: #F5A04A"></div>
+<div style="width: 9.8%; background: #6AA6FF"></div>
+<div style="width: 83.1%; background: #3567B8"></div>
+</div>
+<span style="font-size: 12px; color: #A0A9B8">input 41 k · output 186 k<br>cache: 2,66 M lidos · 312 k gravados</span>
+</div>
+<div style="flex: 1 1 150px; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em">Taxa de cache</span>
+<span style="font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums">88%</span>
+<div role="img" aria-label="Taxa de cache de 88%, acima da meta de 80%" style="position: relative; height: 8px; border-radius: 4px; background: #252B35; margin: 8px 0 6px">
+<div style="width: 88%; height: 8px; border-radius: 4px; background: #6AA6FF"></div>
+<div style="position: absolute; left: 80%; top: -4px; width: 2px; height: 16px; background: #E7EAEE"></div>
+</div>
+<span style="font-size: 12px; color: #A0A9B8">meta ≥ 80% · 1 sessão abaixo</span>
+</div>
+<div style="flex: 1 1 150px; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em">Chamadas</span>
+<span style="font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums">382</span>
+<span style="font-size: 12px; color: #A0A9B8">18 prompts · 21 chamadas por prompt</span>
+<span style="font-size: 12px; color: #A0A9B8">5 sessões · 1 em andamento</span>
+</div>
+<div style="flex: 1 1 150px; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em">Tool calls</span>
+<span style="font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums">1.036</span>
+<span style="font-size: 12px; color: #FF9C8F">25 com erro (2,4%)</span>
+<span style="font-size: 12px; color: #A0A9B8">Erros de API: 2 × 529 (sobrecarga)</span>
+</div>
+<div style="flex: 1 1 150px; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em">Tempo ativo</span>
+<span style="font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums">2h 11m</span>
+<div role="img" aria-label="Tempo ativo é 71% do tempo total de sessão" style="height: 8px; border-radius: 4px; background: #252B35; margin: 8px 0 6px">
+<div style="width: 71%; height: 8px; border-radius: 4px; background: #D3DAE4"></div>
+</div>
+<span style="font-size: 12px; color: #A0A9B8">de 3h 04m de sessão (pausas &gt; 5 min descontadas)</span>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<section aria-labelledby="t-hora" style="flex: 2 1 560px; min-width: 0; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
+<h2 id="t-hora" style="margin: 0; font-size: 15px; font-weight: 600">Gasto por hora</h2>
+<span style="font-size: 12px; color: #A0A9B8">hora atual em destaque</span>
+</div>
+<div role="img" aria-label="Gasto por hora: 8h 0,42; 9h 1,18; 10h 2,05; 11h 1,22 dólares até agora" style="display: flex; align-items: flex-end; gap: 10px; height: 220px; border-bottom: 1px solid #2C3340">
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums">—</span>
+<div style="width: 100%; max-width: 44px; height: 4px; background: #4A5466; border-radius: 6px 6px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums">0,42</span>
+<div style="width: 100%; max-width: 44px; height: 35px; background: #4A5466; border-radius: 6px 6px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums">1,18</span>
+<div style="width: 100%; max-width: 44px; height: 98px; background: #4A5466; border-radius: 6px 6px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums">2,05</span>
+<div style="width: 100%; max-width: 44px; height: 170px; background: #4A5466; border-radius: 6px 6px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums">1,22</span>
+<div style="width: 100%; max-width: 44px; height: 101px; background: #F5A04A; border-radius: 6px 6px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums"></span>
+<div style="width: 100%; max-width: 44px; height: 4px; background: #20252E; border-radius: 6px 6px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums"></span>
+<div style="width: 100%; max-width: 44px; height: 4px; background: #20252E; border-radius: 6px 6px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums"></span>
+<div style="width: 100%; max-width: 44px; height: 4px; background: #20252E; border-radius: 6px 6px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums"></span>
+<div style="width: 100%; max-width: 44px; height: 4px; background: #20252E; border-radius: 6px 6px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums"></span>
+<div style="width: 100%; max-width: 44px; height: 4px; background: #20252E; border-radius: 6px 6px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums"></span>
+<div style="width: 100%; max-width: 44px; height: 4px; background: #20252E; border-radius: 6px 6px 0 0"></div>
+</div>
+
+<div style="flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; height: 100%">
+<span style="font-size: 11px; color: #A0A9B8; font-variant-numeric: tabular-nums"></span>
+<div style="width: 100%; max-width: 44px; height: 4px; background: #20252E; border-radius: 6px 6px 0 0"></div>
+</div>
+
+</div>
+<div style="display: flex; gap: 10px; margin-top: -8px">
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">07h</span>
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">08h</span>
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">09h</span>
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">10h</span>
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">11h</span>
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">12h</span>
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">13h</span>
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">14h</span>
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">15h</span>
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">16h</span>
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">17h</span>
+
+<span style="flex: 1 1 0; text-align: center; font-size: 11px; color: #A0A9B8">18h</span>
+
+</div>
+</section>
+
+<section aria-labelledby="t-tipo" style="flex: 1 1 320px; min-width: 0; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+<h2 id="t-tipo" style="margin: 0; font-size: 15px; font-weight: 600">Custo por tipo de token</h2>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px">
+<div role="img" aria-label="Rosca: output 41%, gravação de cache 27%, leitura de cache 26%, input 6%" style="width: 168px; height: 168px; border-radius: 50%; background: conic-gradient(#F5A04A 0% 41%, #6AA6FF 41% 68%, #3567B8 68% 94%, #D3DAE4 94% 100%); display: flex; align-items: center; justify-content: center">
+<div style="width: 108px; height: 108px; border-radius: 50%; background: #161A21; display: flex; flex-direction: column; align-items: center; justify-content: center">
+<span style="font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums">US$ 4,87</span>
+<span style="font-size: 11px; color: #A0A9B8">hoje</span>
+</div>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; flex: 1 1 140px">
+<li style="display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #F5A04A"></span><span style="flex: 1 1 auto">Output</span><span style="font-variant-numeric: tabular-nums; color: #A0A9B8">41% · US$ 2,00</span></li>
+<li style="display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #6AA6FF"></span><span style="flex: 1 1 auto">Gravação de cache</span><span style="font-variant-numeric: tabular-nums; color: #A0A9B8">27% · US$ 1,31</span></li>
+<li style="display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #3567B8"></span><span style="flex: 1 1 auto">Leitura de cache</span><span style="font-variant-numeric: tabular-nums; color: #A0A9B8">26% · US$ 1,27</span></li>
+<li style="display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #D3DAE4"></span><span style="flex: 1 1 auto">Input</span><span style="font-variant-numeric: tabular-nums; color: #A0A9B8">6% · US$ 0,29</span></li>
+</ul>
+</div>
+<p style="margin: 0; font-size: 12px; color: #A0A9B8">Sem cache, o mesmo trabalho custaria ~US$ 21,40.</p>
+</section>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<section aria-labelledby="t-proj" style="flex: 1 1 320px; min-width: 0; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<h2 id="t-proj" style="margin: 0; font-size: 15px; font-weight: 600">Por projeto</h2>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span>token-controler</span><span style="font-variant-numeric: tabular-nums; color: #A0A9B8">US$ 2,31 · 2 sessões</span></div>
+<div style="height: 8px; border-radius: 4px; background: #252B35"><div style="width: 100%; height: 8px; border-radius: 4px; background: #F5A04A"></div></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span>analisador-curriculos</span><span style="font-variant-numeric: tabular-nums; color: #A0A9B8">US$ 1,64 · 2 sessões</span></div>
+<div style="height: 8px; border-radius: 4px; background: #252B35"><div style="width: 71%; height: 8px; border-radius: 4px; background: #F5A04A"></div></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span>site-psicologa</span><span style="font-variant-numeric: tabular-nums; color: #A0A9B8">US$ 0,92 · 1 sessão</span></div>
+<div style="height: 8px; border-radius: 4px; background: #252B35"><div style="width: 40%; height: 8px; border-radius: 4px; background: #F5A04A"></div></div>
+</div>
+
+</section>
+<section aria-labelledby="t-mod" style="flex: 1 1 320px; min-width: 0; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<h2 id="t-mod" style="margin: 0; font-size: 15px; font-weight: 600">Por modelo</h2>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span>Claude Opus 5.5</span><span style="font-variant-numeric: tabular-nums; color: #A0A9B8">US$ 3,87 · 79%</span></div>
+<div style="height: 8px; border-radius: 4px; background: #252B35"><div style="width: 100%; height: 8px; border-radius: 4px; background: #6AA6FF"></div></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span>Claude Sonnet 5.5</span><span style="font-variant-numeric: tabular-nums; color: #A0A9B8">US$ 0,92 · 19%</span></div>
+<div style="height: 8px; border-radius: 4px; background: #252B35"><div style="width: 24%; height: 8px; border-radius: 4px; background: #6AA6FF"></div></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; gap: 8px"><span>Claude Haiku 5.5</span><span style="font-variant-numeric: tabular-nums; color: #A0A9B8">US$ 0,08 · 2%</span></div>
+<div style="height: 8px; border-radius: 4px; background: #252B35"><div style="width: 2%; height: 8px; border-radius: 4px; background: #6AA6FF"></div></div>
+</div>
+
+</section>
+<section aria-labelledby="t-tools" style="flex: 1 1 320px; min-width: 0; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<h2 id="t-tools" style="margin: 0; font-size: 15px; font-weight: 600">Tools</h2>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #A0A9B8"><span style="width: 10px; height: 10px; border-radius: 3px; background: #3567B8"></span>ok <span style="width: 10px; height: 10px; border-radius: 3px; background: #FF9C8F; margin-left: 6px"></span>erro</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 84px minmax(0, 1fr) 92px; align-items: center; gap: 10px">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 13px">Bash</span>
+<div style="height: 10px; border-radius: 4px; background: #252B35"><div style="width: 100%; height: 10px; border-radius: 4px; background: #3567B8; display: flex; justify-content: flex-end; overflow: hidden"><div style="width: 4.8%; height: 10px; background: #FF9C8F"></div></div></div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #FF9C8F">312 · 4,8%</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 84px minmax(0, 1fr) 92px; align-items: center; gap: 10px">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 13px">Read</span>
+<div style="height: 10px; border-radius: 4px; background: #252B35"><div style="width: 92%; height: 10px; border-radius: 4px; background: #3567B8; display: flex; justify-content: flex-end; overflow: hidden"><div style="width: 0.7%; height: 10px; background: #FF9C8F"></div></div></div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">288 · 0,7%</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 84px minmax(0, 1fr) 92px; align-items: center; gap: 10px">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 13px">Edit</span>
+<div style="height: 10px; border-radius: 4px; background: #252B35"><div style="width: 64%; height: 10px; border-radius: 4px; background: #3567B8; display: flex; justify-content: flex-end; overflow: hidden"><div style="width: 1.0%; height: 10px; background: #FF9C8F"></div></div></div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">201 · 1,0%</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 84px minmax(0, 1fr) 92px; align-items: center; gap: 10px">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 13px">Grep</span>
+<div style="height: 10px; border-radius: 4px; background: #252B35"><div style="width: 38%; height: 10px; border-radius: 4px; background: #3567B8; display: flex; justify-content: flex-end; overflow: hidden"><div style="width: 0.0%; height: 10px; background: #FF9C8F"></div></div></div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">120</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 84px minmax(0, 1fr) 92px; align-items: center; gap: 10px">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 13px">Write</span>
+<div style="height: 10px; border-radius: 4px; background: #252B35"><div style="width: 21%; height: 10px; border-radius: 4px; background: #3567B8; display: flex; justify-content: flex-end; overflow: hidden"><div style="width: 0.0%; height: 10px; background: #FF9C8F"></div></div></div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">64</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 84px minmax(0, 1fr) 92px; align-items: center; gap: 10px">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 13px">WebSearch</span>
+<div style="height: 10px; border-radius: 4px; background: #252B35"><div style="width: 16%; height: 10px; border-radius: 4px; background: #3567B8; display: flex; justify-content: flex-end; overflow: hidden"><div style="width: 11.8%; height: 10px; background: #FF9C8F"></div></div></div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #FF9C8F">51 · 11,8%</span>
+</div>
+
+</section>
+</div>
+
+<section aria-labelledby="t-sess" style="background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<h2 id="t-sess" style="margin: 0; font-size: 15px; font-weight: 600">Sessões de hoje</h2>
+<span style="font-size: 12px; color: #A0A9B8">clique em uma sessão para ver o detalhe</span>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 980px; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums">
+<thead>
+<tr style="text-align: left; color: #A0A9B8; font-size: 12px">
+<th scope="col" style="padding: 8px 10px; font-weight: 500; border-bottom: 1px solid #2C3340">Início</th>
+<th scope="col" style="padding: 8px 10px; font-weight: 500; border-bottom: 1px solid #2C3340">Projeto</th>
+<th scope="col" style="padding: 8px 10px; font-weight: 500; border-bottom: 1px solid #2C3340">Modelo</th>
+<th scope="col" style="padding: 8px 10px; font-weight: 500; border-bottom: 1px solid #2C3340; text-align: right">Duração</th>
+<th scope="col" style="padding: 8px 10px; font-weight: 500; border-bottom: 1px solid #2C3340; text-align: right">Ativo</th>
+<th scope="col" style="padding: 8px 10px; font-weight: 500; border-bottom: 1px solid #2C3340; text-align: right">Chamadas</th>
+<th scope="col" style="padding: 8px 10px; font-weight: 500; border-bottom: 1px solid #2C3340; text-align: right">Cache</th>
+<th scope="col" style="padding: 8px 10px; font-weight: 500; border-bottom: 1px solid #2C3340; text-align: right">Erros</th>
+<th scope="col" style="padding: 8px 10px; font-weight: 500; border-bottom: 1px solid #2C3340; text-align: right">Custo</th>
+<th scope="col" style="padding: 8px 10px; font-weight: 500; border-bottom: 1px solid #2C3340">Sinais</th>
+</tr>
+</thead>
+<tbody>
+
+<tr class="tc-row">
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E">07:52</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E"><a href="sessao.html" style="text-decoration: none; font-weight: 600">token-controler</a>
+</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; color: #A0A9B8">Opus 5.5</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">58 min</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">41 min</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">142</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right; color: #E7EAEE">93%</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">6</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right; font-weight: 600">US$ 1,64</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E">
+
+<span style="color: #7F8898">—</span>
+</td>
+</tr>
+
+<tr class="tc-row">
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E">09:01</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E"><a href="sessao.html" style="text-decoration: none; font-weight: 600">analisador-curriculos</a>
+</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; color: #A0A9B8">Opus 5.5</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">47 min</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">30 min</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">96</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right; color: #FFC58A">71%</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">11</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right; font-weight: 600">US$ 1,56</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E">
+<span style="padding: 3px 9px; border-radius: 999px; background: #3A2A17; color: #FFC58A; font-size: 12px">cache baixo · 3 pausas longas</span>
+
+</td>
+</tr>
+
+<tr class="tc-row">
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E">09:40</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E"><a href="sessao.html" style="text-decoration: none; font-weight: 600">site-psicologa</a>
+</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; color: #A0A9B8">Sonnet 5.5</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">31 min</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">25 min</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">58</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right; color: #E7EAEE">90%</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">2</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right; font-weight: 600">US$ 0,92</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E">
+
+<span style="color: #7F8898">—</span>
+</td>
+</tr>
+
+<tr class="tc-row">
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E">10:12</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E"><a href="sessao.html" style="text-decoration: none; font-weight: 600">token-controler</a>
+</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; color: #A0A9B8">Opus 5.5</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">39 min</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">30 min</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">74</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right; color: #E7EAEE">94%</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">5</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right; font-weight: 600">US$ 0,67</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E">
+
+<span style="color: #7F8898">—</span>
+</td>
+</tr>
+
+<tr class="tc-row">
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E">10:58</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E"><a href="sessao.html" style="text-decoration: none; font-weight: 600">analisador-curriculos</a>
+<span style="margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: #173B2D; color: #7BE6B8; font-size: 11px">em andamento</span></td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; color: #A0A9B8">Haiku 5.5</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">9 min</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">5 min</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">12</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right; color: #E7EAEE">85%</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right">1</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E; text-align: right; font-weight: 600">US$ 0,08</td>
+<td style="padding: 11px 10px; border-bottom: 1px solid #20252E">
+
+<span style="color: #7F8898">—</span>
+</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+</section>
+
+<footer style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 12px; color: #A0A9B8; padding-top: 4px">
+<span>Custos em equivalente de API (na assinatura Pro/Max não é o valor pago). Modelos sem preço aparecem com *.</span>
+<span>Fonte: ~/.claude/projects · último ingest 11:07:40 · 0 linhas ilegíveis · 127.0.0.1:8765</span>
+</footer>
+
+</div>
+</div>
+</body>
+</html>

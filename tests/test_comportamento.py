@@ -95,7 +95,7 @@ def montar_log(pasta: Path, turnos, antes=()):
         s = relogio[0]
         return f"2026-11-21T{10 + s // 3600:02d}:{(s % 3600) // 60:02d}:{s % 60:02d}Z"
 
-    base = {"sessionId": "sess-eeee-5555", "cwd": "C:\\Users\\isa\\proj\\comp"}
+    base = {"sessionId": "sess-eeee-5555", "cwd": "C:\\Users\\usuario\\proj\\comp"}
 
     def assistente(tools):
         n = len(linhas)
@@ -121,7 +121,7 @@ def montar_log(pasta: Path, turnos, antes=()):
 
 
 def ed(arquivo):
-    return ("Edit", {"file_path": f"C:\\Users\\isa\\proj\\comp\\{arquivo}", "old_string": "SEGREDO_x"}, False)
+    return ("Edit", {"file_path": f"C:\\Users\\usuario\\proj\\comp\\{arquivo}", "old_string": "SEGREDO_x"}, False)
 
 
 def sh(tool, comando, sub=False):
@@ -133,7 +133,7 @@ TURNOS = [
     [ed("a.py"), sh("Bash", "pytest", sub=True), sh("Bash", "ls -la"), ed("a.py")],  # 1 codificação, 0 retry (subagente e leitura)
     [ed("a.py"), sh("Bash", "python x.py"), ed("b.py")],                             # 2 codificação, 0 retry (outro arquivo)
     [],                                                                              # 3 conversa
-    [("Read", {"file_path": "C:\\Users\\isa\\proj\\comp\\a.py"}, False), ("Grep", {"pattern": "x"}, False)],  # 4 exploração
+    [("Read", {"file_path": "C:\\Users\\usuario\\proj\\comp\\a.py"}, False), ("Grep", {"pattern": "x"}, False)],  # 4 exploração
     [sh("Bash", "python -m pytest")],                                                # 5 testes
     [sh("PowerShell", "git commit -m 'adiciona test'")],                             # 6 git
     [("Agent", {"prompt": "SEGREDO"}, False)],                                       # 7 delegação

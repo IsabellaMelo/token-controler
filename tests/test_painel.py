@@ -13,7 +13,7 @@ from token_controler import cli, db, diagnostico, painel
 from token_controler.fontes import claude_code
 
 FIXTURES = Path(__file__).parent / "fixtures" / "claude_code" / "projects"
-HOJE = date(2026, 11, 21)                      # o dia dos logs sintéticos da sessão "rpps"
+HOJE = date(2026, 11, 21)                      # o dia dos logs sintéticos da sessão "proj-um"
 LIM = diagnostico.carregar_limites(None)[0]
 ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
@@ -44,11 +44,11 @@ def test_inicio_do_periodo(periodo, desde):
 def test_resumo_de_hoje_so_conta_o_dia(con):
     d = painel.coletar(con, "hoje", HOJE, LIM)
     r = d["resumo"]
-    assert (r["chamadas"], r["sessoes"]) == (4, 1)                 # só a sessão rpps; clin11 é de 20/11
+    assert (r["chamadas"], r["sessoes"]) == (4, 1)                 # só a sessão proj-um; proj-dois é de 20/11
     assert r["custo"] == pytest.approx((106040 + 13200 + 35) / 1e6)
     assert (r["entrada"], r["saida"]) == (160, 550)
     assert r["cache_taxa"] == pytest.approx(20000 / (160 + 21000 + 20000))
-    assert [p["projeto"] for p in d["projetos"]] == ["rpps"]
+    assert [p["projeto"] for p in d["projetos"]] == ["proj-um"]
 
 
 def test_periodo_tudo_inclui_os_outros_dias_e_conta_o_sem_preco(con):
@@ -72,8 +72,8 @@ def test_modelos_tools_shell_atividades_e_diagnostico(con):
 
 
 def test_filtros_de_projeto_e_ferramenta(con):
-    d = painel.coletar(con, "tudo", HOJE, LIM, projeto="clin11")
-    assert d["resumo"]["chamadas"] == 1 and [p["projeto"] for p in d["projetos"]] == ["clin11"]
+    d = painel.coletar(con, "tudo", HOJE, LIM, projeto="proj-dois")
+    assert d["resumo"]["chamadas"] == 1 and [p["projeto"] for p in d["projetos"]] == ["proj-dois"]
     assert painel.coletar(con, "tudo", HOJE, LIM, projeto="nao-existe")["resumo"]["chamadas"] == 0
     assert painel.coletar(con, "tudo", HOJE, LIM, ferramenta="copilot")["resumo"]["chamadas"] == 0
 
@@ -119,7 +119,7 @@ def test_painel_traz_todas_as_caixas_e_o_resumo(con):
         assert titulo in saida, titulo
     assert "[ Tudo ]" in saida and "[1-5] período" in saida and "[q] sair" in saida
     assert "5 chamadas" in saida and "2 sessões" in saida and "* 1 chamada(s) sem preço" in saida
-    assert "rpps" in saida and "clin11" in saida and "opus-5-5" in saida and "sem uso de MCP" in saida
+    assert "proj-um" in saida and "proj-dois" in saida and "opus-5-5" in saida and "sem uso de MCP" in saida
     assert "atualizado 12:00:00 · a cada 15s" in saida
 
 
@@ -163,14 +163,14 @@ def test_com_cor_traz_codigos_ansi_e_sem_cor_nao(con):
 
 def test_painel_nao_exibe_texto_de_conversa(con):
     saida = texto(painel.renderizar(painel.coletar(con, "tudo", HOJE, LIM), 140))
-    for proibido in ("SEGREDO", "analise os fundos", "gera relatorio", "e agora?"):
+    for proibido in ("SEGREDO", "analise os dados", "gera relatorio", "e agora?"):
         assert proibido not in saida
 
 
 def test_diagnostico_aparece_com_severidade(con):
     for i in range(3):
         con.execute("INSERT INTO tool_calls (id, ferramenta, sessao_id, projeto, ts, tool, erro, subagente, arquivo) "
-                    "VALUES (?,?,?,?,?,?,?,?,?)", (f"f{i}", "claude_code", "sess-aaaa-1111", "rpps",
+                    "VALUES (?,?,?,?,?,?,?,?,?)", (f"f{i}", "claude_code", "sess-aaaa-1111", "proj-um",
                                                    f"2026-11-21T12:3{i}:00Z", "Bash", 1, 0, "f"))
     saida = texto(painel.renderizar(painel.coletar(con, "tudo", HOJE, LIM), 140))
     assert "● sess-aaa loop de retry" in saida
@@ -268,8 +268,8 @@ def saida_unica(saida):
 
 def test_laco_comeca_no_periodo_pedido_e_respeita_o_projeto(ambiente, monkeypatch):
     teclas(monkeypatch, ["q"])
-    saida = rodar(ambiente, periodo="tudo", projeto="clin11")
-    assert "[ Tudo ]" in saida and "clin11" in saida and "rpps" not in saida
+    saida = rodar(ambiente, periodo="tudo", projeto="proj-dois")
+    assert "[ Tudo ]" in saida and "proj-dois" in saida and "proj-um" not in saida
 
 
 def test_laco_le_os_logs_a_cada_quadro(ambiente, monkeypatch):
@@ -288,7 +288,7 @@ def test_cli_painel_padrao_usa_o_painel_novo(tmp_path, monkeypatch, capsys):
     teclas(monkeypatch, ["q"])
     cli.main(["--db", str(tmp_path / "c.db"), "painel", "--periodo", "tudo", "--intervalo", "1"])
     saida = capsys.readouterr().out
-    assert "Por projeto" in saida and "[ Tudo ]" in saida and "rpps" in saida
+    assert "Por projeto" in saida and "[ Tudo ]" in saida and "proj-um" in saida
 
 
 def test_cli_painel_sai_limpo_com_ctrl_c(tmp_path, monkeypatch, capsys):

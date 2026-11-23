@@ -46,8 +46,8 @@ def test_painel_simples_desenha_o_painel_de_hoje_e_sai_com_ctrl_c(live, monkeypa
     saida, _ = rodar_quadros(live, monkeypatch, capsys, 1)
     assert "\033[2J\033[H" in saida                                # limpa a tela antes de desenhar
     assert "token-controler · hoje · atualizado" in saida and "(a cada 3s, Ctrl+C para sair)" in saida
-    assert "rpps" in saida and "$0.12" in saida                    # lê os logs sozinho e mostra o dia
-    assert "clin11" not in saida                                   # sessão de 20/11: fora de "hoje"
+    assert "proj-um" in saida and "$0.12" in saida                    # lê os logs sozinho e mostra o dia
+    assert "proj-dois" not in saida                                   # sessão de 20/11: fora de "hoje"
     assert "Custo estimado hoje: $0.12" in saida
 
 
@@ -84,10 +84,10 @@ def test_painel_simples_pega_o_que_aparece_depois_do_primeiro_quadro(live, monke
 
 def test_painel_simples_respeita_o_filtro_de_projeto_na_tabela_e_no_rodape(live, monkeypatch, capsys):
     saida, _ = rodar_quadros(live, monkeypatch, capsys, 1, "--projeto", "nao-existe")
-    assert "(sem dados no período)" in saida and "rpps" not in saida
+    assert "(sem dados no período)" in saida and "proj-um" not in saida
     assert "Custo estimado hoje: -" in saida                       # o rodapé não pode somar os outros projetos
 
 
 def test_painel_simples_rodape_soma_so_o_projeto_filtrado(live, monkeypatch, capsys):
-    saida, _ = rodar_quadros(live, monkeypatch, capsys, 1, "--projeto", "rpps")
-    assert "rpps" in saida and "Custo estimado hoje: $0.12" in saida
+    saida, _ = rodar_quadros(live, monkeypatch, capsys, 1, "--projeto", "proj-um")
+    assert "proj-um" in saida and "Custo estimado hoje: $0.12" in saida

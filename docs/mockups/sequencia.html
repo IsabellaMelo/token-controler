@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tc web — Sequência da sessão (mockup)</title>
+<!--
+  MOCKUP DE REFERÊNCIA — dados fictícios.
+  Só HTML + CSS, sem JavaScript e sem recursos externos.
+  Serve de guia visual para o tc web (design.md §8.1): reproduzir o visual com os dados reais,
+  gerado pelo Python no servidor. No tc web de verdade, acrescentar
+  <meta http-equiv="refresh" content="5"> e trocar os "#topo" por URLs com parâmetros.
+-->
+<style>body{margin:0;background:#0E1014}
+a{color:#9CC3FF}a:hover{color:#C9DDFF}
+.tc-step:hover{background:#1B2029}</style>
+</head>
+<body>
+<div id="topo" style="min-height: 100vh; background: #0E1014; color: #E7EAEE; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.45">
+<div style="max-width: 1360px; margin: 0 auto; padding: 28px 32px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<a href="sessao.html" style="font-size: 13px; text-decoration: none">← Voltar para o resumo da sessão</a>
+<h1 style="margin: 0; font-size: 24px; font-weight: 650; letter-spacing: -0.01em">Sequência da sessão <span style="color: #A0A9B8; font-weight: 400; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 18px">· 7f3c9a</span></h1>
+<span style="font-size: 13px; color: #A0A9B8">analisador-curriculos · Claude Opus 5.5 · 09:01 – 09:48 · tudo o que aconteceu, em ordem, turno a turno</span>
+</div>
+<nav aria-label="Visões da sessão" style="display: flex; gap: 4px; padding: 4px; background: #161A21; border: 1px solid #252B35; border-radius: 10px">
+<a href="sessao.html" style="padding: 7px 14px; border-radius: 7px; color: #A0A9B8; text-decoration: none">Resumo</a>
+<a href="#topo" aria-current="page" style="padding: 7px 14px; border-radius: 7px; background: #262D3A; color: #FFFFFF; text-decoration: none; font-weight: 600">Sequência</a>
+</nav>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+
+<aside aria-labelledby="t-turnos" style="flex: 1 1 260px; min-width: 0; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+<h2 id="t-turnos" style="margin: 0 0 4px; font-size: 15px; font-weight: 600">Turnos</h2>
+<span style="font-size: 12px; color: #A0A9B8; margin-bottom: 4px">1 turno = 1 prompt seu e tudo o que o agente fez até responder</span>
+
+<a href="#topo" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 10px; text-decoration: none; color: #E7EAEE; background: transparent; border: 1px solid #252B35">
+<span style="display: flex; justify-content: space-between; gap: 8px"><strong style="font-weight: 600">Turno 1 · 09:01</strong><span style="font-variant-numeric: tabular-nums; color: #F5A04A">US$ 0,38</span></span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">9 min · 27 chamadas · 21 tools</span>
+
+</a>
+<span style="font-size: 11px; color: #7F8898; text-align: center">· · · pausa de 5 min · · ·</span>
+
+<a href="#topo" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 10px; text-decoration: none; color: #E7EAEE; background: transparent; border: 1px solid #252B35">
+<span style="display: flex; justify-content: space-between; gap: 8px"><strong style="font-weight: 600">Turno 2 · 09:15</strong><span style="font-variant-numeric: tabular-nums; color: #F5A04A">US$ 0,31</span></span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">6 min · 18 chamadas · 17 tools</span>
+<span style="font-size: 12px; color: #FFC58A">re-criação de cache</span>
+</a>
+<span style="font-size: 11px; color: #7F8898; text-align: center">· · · pausa de 6 min · · ·</span>
+
+<a href="#topo" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 10px; text-decoration: none; color: #E7EAEE; background: #222936; border: 1px solid #4A5466">
+<span style="display: flex; justify-content: space-between; gap: 8px"><strong style="font-weight: 600">Turno 3 · 09:27</strong><span style="font-variant-numeric: tabular-nums; color: #F5A04A">US$ 0,58</span></span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">5 min · 18 chamadas · 13 tools</span>
+<span style="font-size: 12px; color: #FFC58A">loop de retry · 2 erros de MCP</span>
+</a>
+<span style="font-size: 11px; color: #7F8898; text-align: center">· · · pausa de 6 min · · ·</span>
+
+<a href="#topo" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 10px; text-decoration: none; color: #E7EAEE; background: transparent; border: 1px solid #252B35">
+<span style="display: flex; justify-content: space-between; gap: 8px"><strong style="font-weight: 600">Turno 4 · 09:38</strong><span style="font-variant-numeric: tabular-nums; color: #F5A04A">US$ 0,17</span></span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">4 min · 14 chamadas · 22 tools</span>
+<span style="font-size: 12px; color: #FFC58A">re-criação de cache</span>
+</a>
+
+
+<a href="#topo" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 10px; text-decoration: none; color: #E7EAEE; background: transparent; border: 1px solid #252B35">
+<span style="display: flex; justify-content: space-between; gap: 8px"><strong style="font-weight: 600">Turno 5 · 09:43</strong><span style="font-variant-numeric: tabular-nums; color: #F5A04A">US$ 0,12</span></span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">6 min · 19 chamadas · 23 tools</span>
+
+</a>
+
+
+</aside>
+
+<section aria-labelledby="t-seq" style="flex: 999 1 640px; min-width: 0; background: #161A21; border: 1px solid #252B35; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
+<h2 id="t-seq" style="margin: 0; font-size: 17px; font-weight: 600">Turno 3 · 09:27:04 – 09:31:52 <span style="font-weight: 400; color: #A0A9B8; font-size: 14px">· 4 min 48 s · 18 chamadas · 13 tools · US$ 0,58</span></h2>
+<span style="font-size: 12px; color: #A0A9B8">barra à direita = quando cada passo começou e quanto durou dentro do turno</span>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px">
+
+<a href="#topo" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; text-decoration: none; color: #E7EAEE; border: 1px solid #4A5466; background: #262D3A"><span style="min-width: 22px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #E7EAEE; color: #0E1014">∗</span>Tudo <span style="color: #A0A9B8; font-variant-numeric: tabular-nums">23</span></a>
+
+<a href="#topo" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; text-decoration: none; color: #E7EAEE; border: 1px solid #2C3340; background: transparent"><span style="min-width: 22px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2A3140; color: #E7EAEE">M</span>Modelo <span style="color: #A0A9B8; font-variant-numeric: tabular-nums">9</span></a>
+
+<a href="#topo" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; text-decoration: none; color: #E7EAEE; border: 1px solid #2C3340; background: transparent"><span style="min-width: 22px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #1D3352; color: #9CC3FF">R</span>Leitura <span style="color: #A0A9B8; font-variant-numeric: tabular-nums">3</span></a>
+
+<a href="#topo" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; text-decoration: none; color: #E7EAEE; border: 1px solid #2C3340; background: transparent"><span style="min-width: 22px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #3D2A15; color: #FFC58A">E</span>Escrita <span style="color: #A0A9B8; font-variant-numeric: tabular-nums">2</span></a>
+
+<a href="#topo" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; text-decoration: none; color: #E7EAEE; border: 1px solid #2C3340; background: transparent"><span style="min-width: 22px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2B313C; color: #D3DAE4">$</span>Shell <span style="color: #A0A9B8; font-variant-numeric: tabular-nums">5</span></a>
+
+<a href="#topo" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; text-decoration: none; color: #E7EAEE; border: 1px solid #2C3340; background: transparent"><span style="min-width: 22px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2E2346; color: #C8B4F5">MCP</span>MCP <span style="color: #A0A9B8; font-variant-numeric: tabular-nums">2</span></a>
+
+<a href="#topo" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; text-decoration: none; color: #E7EAEE; border: 1px solid #2C3340; background: transparent"><span style="min-width: 22px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #163833; color: #7FDCCB">SA</span>Subagente <span style="color: #A0A9B8; font-variant-numeric: tabular-nums">1</span></a>
+
+<a href="#topo" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; text-decoration: none; color: #E7EAEE; border: 1px solid #2C3340; background: transparent"><span style="min-width: 22px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #3A2020; color: #FF9C8F">!</span>Só erros <span style="color: #A0A9B8; font-variant-numeric: tabular-nums">6</span></a>
+
+</div>
+
+<div style="overflow-x: auto">
+<div role="list" style="min-width: 920px; display: flex; flex-direction: column">
+<div aria-hidden="true" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; padding: 0 10px 8px; font-size: 11px; color: #A0A9B8; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #2C3340">
+<span>Hora</span><span></span><span>Passo</span><span style="text-align: right">Duração · custo</span><span>09:27 ··· 09:31</span>
+</div>
+
+
+
+
+
+<div role="listitem" style="display: flex; align-items: center; gap: 12px; padding: 10px; font-size: 12px; color: #A0A9B8">
+<span style="flex: 1 1 0; border-top: 1px dashed #3A4250"></span><span>pausa de 6 min antes deste turno · cache de 5 min expirou</span><span style="flex: 1 1 0; border-top: 1px dashed #3A4250"></span>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:27:04</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #E7EAEE; color: #0E1014; border: 2px solid #E7EAEE">P</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Seu prompt</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">texto não guardado · 3º de 5 prompts da sessão</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8"></span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 0.0%; width: 1.2%; background: #E7EAEE"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:27:05</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2A3140; color: #E7EAEE; border: 2px solid #2A3140">M</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Chamada ao modelo</strong>
+<span style="padding: 1px 8px; border-radius: 999px; font-size: 11px; background: #3A2A17; color: #FFC58A">re-criação de cache</span>
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">Opus 5.5 · out 640 · cache gravado 51 k · lido 0</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">6,2 s · US$ 0,33</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 0.3%; width: 2.2%; background: #8A94A6"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:27:12</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2E2346; color: #C8B4F5; border: 2px solid #FF9C8F">MCP</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">google-drive · search_files</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">servidor MCP · erro: autenticação expirada</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #FF9C8F">1,4 s · erro</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 2.8%; width: 1.2%; background: #FF9C8F"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:27:14</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2E2346; color: #C8B4F5; border: 2px solid #FF9C8F">MCP</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">google-drive · search_files</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">servidor MCP · 2ª tentativa · erro: autenticação expirada</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #FF9C8F">1,1 s · erro</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 3.5%; width: 1.2%; background: #FF9C8F"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:27:16</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2A3140; color: #E7EAEE; border: 2px solid #2A3140">M</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Chamada ao modelo</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">Opus 5.5 · out 410 · cache lido 54 k</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">4,0 s · US$ 0,04</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 4.2%; width: 1.4%; background: #8A94A6"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:27:21</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #1D3352; color: #9CC3FF; border: 2px solid #1D3352">R</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Read</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">arquivo #a3f2 · .py</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">0,1 s</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 5.9%; width: 1.2%; background: #6AA6FF"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:27:21</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #1D3352; color: #9CC3FF; border: 2px solid #1D3352">R</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Read</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">arquivo #91bc · .toml</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">0,1 s</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 5.9%; width: 1.2%; background: #6AA6FF"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:27:22</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #1D3352; color: #9CC3FF; border: 2px solid #1D3352">G</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Grep</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">busca no projeto</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">0,2 s</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 6.3%; width: 1.2%; background: #6AA6FF"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:27:25</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #163833; color: #7FDCCB; border: 2px solid #163833">SA</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Subagente · Explore</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">Haiku 5.5 · 9 chamadas próprias · rodou em paralelo e devolveu um resumo</span>
+
+<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px">
+
+<span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; background: #12151B; border: 1px dashed #2F5D56; font-size: 12px; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; color: #D3DAE4">Read #77d0 .py</span>
+
+<span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; background: #12151B; border: 1px dashed #2F5D56; font-size: 12px; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; color: #D3DAE4">Read #c41e .py</span>
+
+<span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; background: #12151B; border: 1px dashed #2F5D56; font-size: 12px; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; color: #D3DAE4">Read #0b9a .md</span>
+
+<span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; background: #12151B; border: 1px dashed #2F5D56; font-size: 12px; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; color: #D3DAE4">Grep ×2</span>
+
+</div>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">38 s · US$ 0,05</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 7.3%; width: 13.2%; background: #4FC1B0"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:28:05</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2A3140; color: #E7EAEE; border: 2px solid #2A3140">M</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Chamada ao modelo</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">Opus 5.5 · out 1,8 k · cache lido 61 k</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">18 s · US$ 0,06</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 21.2%; width: 6.3%; background: #8A94A6"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:28:24</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #3D2A15; color: #FFC58A; border: 2px solid #3D2A15">E</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Edit</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">arquivo #a3f2 · .py</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">0,1 s</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 27.8%; width: 1.2%; background: #F5A04A"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:28:26</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2A3140; color: #E7EAEE; border: 2px solid #2A3140">M</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Chamada ao modelo</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">Opus 5.5 · out 220 · cache lido 62 k</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">3,0 s · US$ 0,01</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 28.5%; width: 1.2%; background: #8A94A6"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:28:39</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2B313C; color: #D3DAE4; border: 2px solid #2B313C">$</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Bash</strong>
+<span style="padding: 1px 8px; border-radius: 999px; font-size: 11px; background: #1D3352; color: #9CC3FF">tool lenta · acima do p95</span>
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">exit 0 · comando não guardado</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">52 s</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 33.0%; width: 18.1%; background: #D3DAE4"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:29:32</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2A3140; color: #E7EAEE; border: 2px solid #2A3140">M</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Chamada ao modelo</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">Opus 5.5 · out 1,1 k · cache lido 63 k</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">12 s · US$ 0,04</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 51.4%; width: 4.2%; background: #8A94A6"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:29:45</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #3D2A15; color: #FFC58A; border: 2px solid #3D2A15">E</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Edit</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">arquivo #a3f2 · .py</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">0,1 s</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 55.9%; width: 1.2%; background: #F5A04A"></div>
+</div>
+</div>
+
+
+
+
+
+<div role="listitem" style="margin-top: 10px; padding: 8px 12px; border-radius: 10px 10px 0 0; background: #2C1C1C; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 13px">
+<strong style="color: #FF9C8F; font-weight: 600">Loop de retry · Bash falhou 4× seguidas · mesma categoria: módulo não encontrado</strong><span style="color: #E7C0BA">+3 chamadas ao modelo · ~US$ 0,05 · → registre no CLAUDE.md como ativar o ambiente</span>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: #2C1C1C; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:30:58</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2B313C; color: #D3DAE4; border: 2px solid #FF9C8F">$</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Bash</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">exit 1 · erro: módulo não encontrado</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #FF9C8F">3,1 s · erro</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 81.3%; width: 1.2%; background: #FF9C8F"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: #2C1C1C; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:31:07</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2B313C; color: #D3DAE4; border: 2px solid #FF9C8F">$</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Bash</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">exit 1 · 2ª tentativa · erro: módulo não encontrado</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #FF9C8F">2,9 s · erro</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 84.4%; width: 1.2%; background: #FF9C8F"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: #2C1C1C; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:31:16</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2B313C; color: #D3DAE4; border: 2px solid #FF9C8F">$</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Bash</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">exit 1 · 3ª tentativa · erro: módulo não encontrado</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #FF9C8F">3,0 s · erro</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 87.5%; width: 1.2%; background: #FF9C8F"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: #2C1C1C; border-radius: 0 0 10px 10px">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:31:25</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2B313C; color: #D3DAE4; border: 2px solid #FF9C8F">$</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Bash</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">exit 1 · 4ª tentativa · erro: módulo não encontrado</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #FF9C8F">3,2 s · erro</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 90.6%; width: 1.2%; background: #FF9C8F"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<div role="listitem" class="tc-step" style="display: grid; grid-template-columns: 80px 44px minmax(0, 1fr) 190px 220px; gap: 12px; align-items: center; padding: 0 10px; min-height: 52px; background: transparent; border-radius: 0">
+<span style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12px; color: #A0A9B8">09:31:40</span>
+<div style="position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center">
+<span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 21px; width: 2px; background: #2C3340"></span>
+<span style="position: relative; width: 34px; height: 34px; box-sizing: border-box; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; background: #2A3140; color: #E7EAEE; border: 2px solid #2A3140">M</span>
+</div>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 0; padding-left: 0px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><strong style="font-weight: 600">Chamada ao modelo · resposta final</strong>
+
+</span>
+<span style="font-size: 12px; color: #A0A9B8; font-variant-numeric: tabular-nums">Opus 5.5 · out 380 · fim do turno</span>
+
+</div>
+<span style="text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: #A0A9B8">12 s · &lt; US$ 0,01</span>
+<div aria-hidden="true" style="position: relative; height: 10px; border-radius: 3px; background: #1E232C">
+<div style="position: absolute; top: 0; height: 10px; border-radius: 3px; left: 95.8%; width: 4.2%; background: #8A94A6"></div>
+</div>
+</div>
+
+
+
+
+
+
+
+<div role="listitem" style="display: flex; align-items: center; gap: 12px; padding: 10px; font-size: 12px; color: #A0A9B8">
+<span style="flex: 1 1 0; border-top: 1px dashed #3A4250"></span><span>pausa de 6 min depois deste turno</span><span style="flex: 1 1 0; border-top: 1px dashed #3A4250"></span>
+</div>
+
+
+
+
+
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px; padding-top: 4px; font-size: 12px; color: #A0A9B8">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid #FF9C8F; box-sizing: border-box"></span>falhou</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 14px; height: 10px; border-radius: 3px; background: #2C1C1C"></span>loop de retry</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 14px; height: 10px; border-radius: 3px; border: 1px dashed #2F5D56; box-sizing: border-box"></span>feito pelo subagente</span>
+</div>
+</section>
+</div>
+
+<footer style="font-size: 12px; color: #A0A9B8">Só metadados: tipo do passo, nome da tool ou do servidor MCP, horário, duração, tokens, custo e erro. Prompts, argumentos e resultados não são guardados; a mensagem de erro é lida em memória só para virar uma categoria (ex.: módulo não encontrado) e descartada. Arquivos aparecem por hash + extensão.</footer>
+
+</div>
+</div>
+</body>
+</html>
