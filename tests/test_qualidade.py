@@ -15,7 +15,7 @@ FIXTURES = Path(__file__).parent / "fixtures" / "claude_code" / "projects"
 
 def linha(msg, modelo="claude-opus-5-5", usage=None, req=None, **extra):
     """Linha de resposta do assistente, escrita à mão (sem nenhum texto de conversa)."""
-    d = {"type": "assistant", "sessionId": "sess-q", "cwd": "C:\\Users\\isa\\proj\\q",
+    d = {"type": "assistant", "sessionId": "sess-q", "cwd": "C:\\Users\\usuario\\proj\\q",
          "timestamp": "2026-11-21T10:00:00Z", "requestId": req or f"r-{msg}",
          "message": {"id": msg, "model": modelo, "usage": usage if usage is not None else
                      {"input_tokens": 100, "output_tokens": 10}, "content": []}}

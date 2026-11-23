@@ -1,2 +1,0 @@
-{"type": "user", "sessionId": "sess-bbbb-2222", "cwd": "C:\\Users\\isa\\proj\\clin11", "timestamp": "2026-11-20T15:00:00Z", "message": {"role": "user", "content": "gera relatorio"}}
-{"type": "assistant", "sessionId": "sess-bbbb-2222", "cwd": "C:\\Users\\isa\\proj\\clin11", "timestamp": "2026-11-20T15:00:03Z", "requestId": "r9", "message": {"id": "m9", "model": "gpt-9-desconhecido", "usage": {"input_tokens": 1000, "output_tokens": 100}, "content": []}}

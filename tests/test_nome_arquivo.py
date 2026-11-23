@@ -28,9 +28,9 @@ def nomes(con):
 # ---------- a função ----------
 
 @pytest.mark.parametrize("caminho, esperado", [
-    ("C:\\Users\\isa\\proj\\analise.py", "analise.py"),
-    ("/home/isa/proj/analise.py", "analise.py"),
-    ("c:/users/isa/proj/analise.py/", "analise.py"),            # barra final
+    ("C:\\Users\\usuario\\proj\\analise.py", "analise.py"),
+    ("/home/usuario/proj/analise.py", "analise.py"),
+    ("c:/users/usuario/proj/analise.py/", "analise.py"),            # barra final
     ("pasta\\sub/misto.py", "misto.py"),                         # barras misturadas
     ("analise.py", "analise.py"),                                # já é só o nome
     ("C:analise.py", "analise.py"),                              # unidade sem barra
@@ -97,7 +97,7 @@ def test_banco_nao_tem_nenhum_caminho_completo_nem_comando_nem_conteudo(tmp_path
         con.commit()
         conteudo = (tmp_path / (pasta.parent.name + ".db")).read_bytes()
         con.close()
-        for proibido in (b"proj\\tools", b"proj/tools", b"proj\\arvore", b"proj/arvore", b"isa\\proj", b"isa/proj",
+        for proibido in (b"proj\\tools", b"proj/tools", b"proj\\arvore", b"proj/arvore", b"usuario\\proj", b"usuario/proj",
                          b"echo ", b"pytest", b"git status", b"SEGREDO_comando", b"SEGREDO_prompt", b"SEGREDO_resultado",
                          b"SEGREDO_resumo", b"SEGREDO_resposta", b"SEGREDO_tarefa", b"SEGREDO_agente", b"SEGREDO_padrao"):
             assert proibido not in conteudo, proibido

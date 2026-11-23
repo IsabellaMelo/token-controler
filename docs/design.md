@@ -1,6 +1,6 @@
 # token-controler — Documento de design
 
-*Versão 0.1 · 21/11/2026 · Isabella Melo · backlog em `docs/tarefas.md` · atualizado em 22/11/2026 (`tc web`, sequência da sessão e categorias de erro: T21 a T29)*
+*Versão 0.1 · 21/11/2026 · backlog em `docs/tarefas.md` · atualizado em 22/11/2026 (`tc web`, sequência da sessão e categorias de erro: T21 a T29)*
 
 ## 1. Visão
 

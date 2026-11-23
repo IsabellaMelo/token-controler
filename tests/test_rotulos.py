@@ -45,14 +45,14 @@ def test_ignora_acento_e_caixa():
 # ---------- do log ao banco ----------
 
 def _linha(tipo, ts, conteudo, **extra):
-    return {"type": tipo, "sessionId": "sess-ffff-6666", "cwd": "C:\\Users\\isa\\proj\\rot", "timestamp": ts,
+    return {"type": tipo, "sessionId": "sess-ffff-6666", "cwd": "C:\\Users\\usuario\\proj\\rot", "timestamp": ts,
             "message": {"role": "user", "content": conteudo}, **extra}
 
 
 def _resposta(n, ts, tools):
     blocos = [{"type": "tool_use", "id": f"t{n}-{i}", "name": nome, "input": entrada}
               for i, (nome, entrada) in enumerate(tools)]
-    return {"type": "assistant", "sessionId": "sess-ffff-6666", "cwd": "C:\\Users\\isa\\proj\\rot", "timestamp": ts,
+    return {"type": "assistant", "sessionId": "sess-ffff-6666", "cwd": "C:\\Users\\usuario\\proj\\rot", "timestamp": ts,
             "requestId": f"r{n}", "message": {"id": f"m{n}", "model": "claude-opus-5-5",
                                               "usage": {"input_tokens": 100, "output_tokens": 10}, "content": blocos}}
 

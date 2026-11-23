@@ -37,7 +37,7 @@ tc resumo --por dia --desde 2026-11-01
 tc resumo --por modelo         # confere se algum modelo ficou sem preço
 tc resumo --por sessao --hoje
 tc sessoes                     # duração, tempo ativo, prompts, chamadas, custo
-tc tools --projeto rpps        # uso, taxa de erro e erros por categoria, por tool (recusas do usuário ficam fora)
+tc tools --projeto proj-um        # uso, taxa de erro e erros por categoria, por tool (recusas do usuário ficam fora)
 tc diagnostico                 # onde as sessões ficaram caras ou lentas, com a evidência
 tc sessao                      # a sessão mais recente em árvore: prompts, tools, subagentes, pausas e ⚠
 tc sessao a1b2c3d4             # uma sessão específica (o começo do ID, como em `tc sessoes`)
@@ -109,7 +109,7 @@ Alertas
 ```bash
 tc live                    # atualiza a cada 10 s; r atualiza agora; q, Esc ou Ctrl+C saem
 tc live --intervalo 5
-tc live --projeto rpps     # só um projeto (--ferramenta também)
+tc live --projeto proj-um     # só um projeto (--ferramenta também)
 tc live --simples          # texto puro, sem o rich (também é o que aparece se o rich não estiver instalado)
 ```
 
@@ -142,7 +142,7 @@ Ele relê os logs a cada atualização e usa 3, 2 ou 1 coluna conforme a largura
 ```bash
 tc painel                        # começa em "Hoje", atualiza a cada 15 s
 tc painel --periodo 7d --intervalo 5
-tc painel --projeto rpps         # só um projeto (--ferramenta também)
+tc painel --projeto proj-um         # só um projeto (--ferramenta também)
 tc painel --simples              # painel antigo, só uma tabela de hoje, sem o rich
 ```
 
@@ -190,8 +190,8 @@ O projeto vem do nome da pasta onde a sessão rodou. Para agrupar ou renomear, c
 
 ```json
 {
-  "C:/Users/voce/repos/rpps-analytics": "rpps",
-  "C:/Users/voce/repos/clin11": "clin11"
+  "C:/Users/voce/repos/proj-um": "proj-um",
+  "C:/Users/voce/repos/proj-dois": "proj-dois"
 }
 ```
 
@@ -293,7 +293,7 @@ como aparece em `tc sessoes`. Funciona no terminal do VS Code; sem o `rich`, a m
 `--json` imprime os mesmos dados como JSON (sem comandos de shell).
 
 ```
-Sessão a1b2c3d4 · rpps
+Sessão a1b2c3d4 · proj-um
 duração 15min20s   custo $0.87   categoria Exploração
 3 prompts · 21 chamadas · 18 tools (6 com erro) · cache 74% · 1 compactação(ões)
 
